@@ -6,7 +6,10 @@ import {
   signInWithEmailAndPassword, 
   signOut,
   PhoneAuthProvider,
-  RecaptchaVerifier
+  RecaptchaVerifier,
+  sendEmailVerification,
+  applyActionCode,
+  checkActionCode
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
@@ -43,6 +46,18 @@ export const signIn = (email: string, password: string) => {
 
 export const logout = () => {
   return signOut(auth);
+};
+
+export const sendVerificationEmail = (user: any) => {
+  return sendEmailVerification(user);
+};
+
+export const verifyEmail = (actionCode: string) => {
+  return applyActionCode(auth, actionCode);
+};
+
+export const checkVerificationCode = (actionCode: string) => {
+  return checkActionCode(auth, actionCode);
 };
 
 export default app;

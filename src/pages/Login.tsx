@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { Laptop, Smartphone } from "lucide-react";
+import { Laptop, Smartphone, Loader2 } from "lucide-react";
 import Logo from "@/components/Logo";
 
 const Login = () => {
@@ -47,18 +47,24 @@ const Login = () => {
         localStorage.removeItem("rememberMe");
       }
       
-      // Navigate to verification page if not in demo mode
-      navigate("/verify", { 
-        state: { 
-          phoneNumber: userCredential.user.phoneNumber || "",
-          userData: {
-            id: userCredential.user.uid,
+      // Check if email is verified
+      if (!userCredential.user.emailVerified) {
+        // Navigate to verification page if email is not verified
+        navigate("/verify", { 
+          state: { 
             email: userCredential.user.email,
-            // Other user data would need to be fetched from Firestore here
-            role: "student" // Default role, should be fetched from Firestore
-          }
-        } 
-      });
+            userData: {
+              id: userCredential.user.uid,
+              email: userCredential.user.email,
+              // Other user data would need to be fetched from Firestore here
+              role: "student" // Default role, should be fetched from Firestore
+            }
+          } 
+        });
+      } else {
+        // Email already verified, navigate directly to dashboard
+        navigate("/dashboard");
+      }
     } catch (error) {
       toast({
         variant: "destructive",
