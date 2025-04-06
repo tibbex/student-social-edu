@@ -31,7 +31,7 @@ const VerifyCode = () => {
   useEffect(() => {
     // Initialize reCAPTCHA
     if (!window.recaptchaVerifier && auth.app) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+      window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', {
         'size': 'normal',
         'callback': () => {
           setRecaptchaVerified(true);
@@ -45,7 +45,7 @@ const VerifyCode = () => {
             description: "Please verify the reCAPTCHA again.",
           });
         }
-      });
+      }, auth);
       
       window.recaptchaVerifier.render();
     }
@@ -164,7 +164,7 @@ const VerifyCode = () => {
       sendVerificationCode();
     } else {
       toast({
-        variant: "warning",
+        variant: "default",
         title: "reCAPTCHA required",
         description: "Please complete the reCAPTCHA verification first.",
       });
