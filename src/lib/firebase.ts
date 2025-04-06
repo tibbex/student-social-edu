@@ -5,9 +5,7 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut,
-  PhoneAuthProvider,
-  RecaptchaVerifier,
-  sendEmailVerification,
+  sendEmailVerification as firebaseSendEmailVerification,
   applyActionCode,
   checkActionCode
 } from 'firebase/auth';
@@ -29,13 +27,6 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
-// Add RecaptchaVerifier to window object
-declare global {
-  interface Window {
-    recaptchaVerifier: RecaptchaVerifier | null;
-  }
-}
-
 export const createUser = (email: string, password: string) => {
   return createUserWithEmailAndPassword(auth, email, password);
 };
@@ -49,7 +40,7 @@ export const logout = () => {
 };
 
 export const sendVerificationEmail = (user: any) => {
-  return sendEmailVerification(user);
+  return firebaseSendEmailVerification(user);
 };
 
 export const verifyEmail = (actionCode: string) => {

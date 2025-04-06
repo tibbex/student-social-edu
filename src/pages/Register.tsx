@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { createUser } from "@/lib/firebase";
+import { createUser, sendVerificationEmail } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -24,7 +23,6 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   
-  // Common fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -32,16 +30,13 @@ const Register = () => {
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
   
-  // Student specific fields
   const [studentSchool, setStudentSchool] = useState("");
   const [age, setAge] = useState("");
   const [grade, setGrade] = useState("");
   
-  // Teacher specific fields
   const [teacherSchool, setTeacherSchool] = useState("");
   const [teachingGrades, setTeachingGrades] = useState("");
   
-  // School specific fields
   const [ceo, setCeo] = useState("");
 
   const { setUserData } = useAuth();
@@ -49,7 +44,6 @@ const Register = () => {
   const navigate = useNavigate();
 
   const validateForm = () => {
-    // Basic validation
     if (!email || !password || !confirmPassword || !name || !phone || !location) {
       toast({
         variant: "destructive",
@@ -77,7 +71,6 @@ const Register = () => {
       return false;
     }
 
-    // Role-specific validation
     if (activeTab === "student") {
       if (!studentSchool || !age || !grade) {
         toast({
@@ -118,10 +111,8 @@ const Register = () => {
     try {
       setIsLoading(true);
       
-      // Register user with Firebase
       const userCredential = await createUser(email, password);
       
-      // Prepare user data based on role
       const userData = {
         id: userCredential.user.uid,
         email: userCredential.user.email,
@@ -143,25 +134,24 @@ const Register = () => {
         })
       };
       
-      // Save user data to Firestore
       await setDoc(doc(db, "users", userCredential.user.uid), userData);
       
-      // Store remember me preference
       if (rememberMe) {
         localStorage.setItem("rememberMe", "true");
       } else {
         localStorage.removeItem("rememberMe");
       }
       
+      await sendVerificationEmail(userCredential.user);
+      
       toast({
         title: "Registration successful",
-        description: "Please verify your phone number to continue.",
+        description: "Please check your email for a verification link.",
       });
       
-      // Navigate to phone verification page
       navigate("/verify", { 
         state: { 
-          phoneNumber: phone,
+          email: email,
           userData: userData
         } 
       });
@@ -222,7 +212,6 @@ const Register = () => {
             
             <form onSubmit={handleRegister}>
               <div className="grid gap-4">
-                {/* Common fields for all roles */}
                 <div className="grid gap-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input 
@@ -273,7 +262,6 @@ const Register = () => {
                   />
                 </div>
                 
-                {/* Role-specific fields */}
                 {activeTab === "student" && (
                   <>
                     <div className="grid gap-2">
@@ -361,7 +349,6 @@ const Register = () => {
                   </>
                 )}
                 
-                {/* Password fields */}
                 <div className="grid gap-2">
                   <Label htmlFor="password">Password</Label>
                   <Input 

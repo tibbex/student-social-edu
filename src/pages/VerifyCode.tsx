@@ -1,21 +1,20 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { auth, sendVerificationEmail, verifyEmail } from "@/lib/firebase";
+import { auth, sendVerificationEmail, verifyEmail, checkVerificationCode } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 import Logo from "@/components/Logo";
-import { ArrowLeft, Loader2, Mail, AlertCircle } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, AlertCircle, CheckCircle2 } from "lucide-react";
 
 const VerifyCode = () => {
-  const [verificationCode, setVerificationCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
+  const [verificationSuccess, setVerificationSuccess] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const [resendDisabled, setResendDisabled] = useState(true);
   const navigate = useNavigate();
@@ -52,22 +51,7 @@ const VerifyCode = () => {
 
     // If we have an email but no oobCode, send verification email automatically
     if ((email || auth.currentUser?.email) && !oobCode && !codeSent) {
-      sendVerificationEmail(auth.currentUser)
-        .then(() => {
-          setCodeSent(true);
-          toast({
-            title: "Verification email sent",
-            description: "Please check your inbox and click the verification link.",
-          });
-        })
-        .catch((error) => {
-          console.error("Error sending verification email:", error);
-          toast({
-            variant: "destructive",
-            title: "Failed to send verification email",
-            description: "Please try again or contact support.",
-          });
-        });
+      handleSendVerificationEmail();
     }
     
     // Countdown timer for resend
@@ -87,8 +71,8 @@ const VerifyCode = () => {
     };
   }, [email, toast, navigate, oobCode, codeSent]);
 
-  const sendVerificationEmail = async (user: any) => {
-    if (!user) {
+  const handleSendVerificationEmail = async () => {
+    if (!auth.currentUser) {
       toast({
         variant: "destructive",
         title: "Error",
@@ -100,7 +84,7 @@ const VerifyCode = () => {
     
     try {
       setIsLoading(true);
-      await sendVerificationEmail(user);
+      await sendVerificationEmail(auth.currentUser);
       
       toast({
         title: "Verification email sent",
@@ -127,8 +111,13 @@ const VerifyCode = () => {
     try {
       setIsLoading(true);
       
+      // Check if the code is valid
+      await checkVerificationCode(code);
+      
       // Verify the email with the action code
       await verifyEmail(code);
+      
+      setVerificationSuccess(true);
       
       if (userData) {
         setUserData(userData);
@@ -139,7 +128,11 @@ const VerifyCode = () => {
         description: "Your email has been successfully verified.",
       });
       
-      navigate("/dashboard");
+      // Delay navigation to dashboard to show success message
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 3000);
+      
     } catch (error) {
       console.error("Error verifying email:", error);
       toast({
@@ -153,21 +146,48 @@ const VerifyCode = () => {
   };
 
   const handleResendCode = () => {
-    if (auth.currentUser) {
-      sendVerificationEmail(auth.currentUser);
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No user found to send verification email.",
-      });
-      navigate("/");
-    }
+    handleSendVerificationEmail();
   };
 
   const handleGoBack = () => {
     navigate("/");
   };
+
+  // Display success view if verification was successful
+  if (verificationSuccess) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-edu-light via-white to-edu-primary/20 animate-fade-in">
+        <div className="w-full max-w-md mb-6">
+          <Logo />
+        </div>
+        
+        <Card className="w-full max-w-md animate-slide-in">
+          <CardHeader>
+            <CardTitle className="text-2xl text-center text-edu-dark">Email Verified!</CardTitle>
+            <CardDescription className="text-center">
+              Your email has been successfully verified
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-6 flex flex-col items-center">
+            <CheckCircle2 className="h-16 w-16 text-green-500" />
+            <AlertDescription className="text-center">
+              You will be redirected to the dashboard automatically.
+            </AlertDescription>
+          </CardContent>
+          
+          <CardFooter className="flex flex-col space-y-4">
+            <Button 
+              className="w-full"
+              onClick={() => navigate("/dashboard")}
+            >
+              Go to Dashboard
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-edu-light via-white to-edu-primary/20 animate-fade-in">
