@@ -146,9 +146,6 @@ const Register = () => {
       // Save user data to Firestore
       await setDoc(doc(db, "users", userCredential.user.uid), userData);
       
-      // Update context
-      setUserData(userData);
-      
       // Store remember me preference
       if (rememberMe) {
         localStorage.setItem("rememberMe", "true");
@@ -158,11 +155,16 @@ const Register = () => {
       
       toast({
         title: "Registration successful",
-        description: "Welcome to EduHub!",
+        description: "Please verify your phone number to continue.",
       });
       
-      // Navigate to dashboard
-      navigate("/dashboard");
+      // Navigate to phone verification page
+      navigate("/verify", { 
+        state: { 
+          phoneNumber: phone,
+          userData: userData
+        } 
+      });
     } catch (error) {
       toast({
         variant: "destructive",

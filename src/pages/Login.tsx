@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signIn } from "@/lib/firebase";
@@ -39,7 +38,7 @@ const Login = () => {
     
     try {
       setIsLoading(true);
-      await signIn(email, password);
+      const userCredential = await signIn(email, password);
       
       // Store remember me preference
       if (rememberMe) {
@@ -48,7 +47,18 @@ const Login = () => {
         localStorage.removeItem("rememberMe");
       }
       
-      navigate("/dashboard");
+      // Navigate to verification page if not in demo mode
+      navigate("/verify", { 
+        state: { 
+          phoneNumber: userCredential.user.phoneNumber || "",
+          userData: {
+            id: userCredential.user.uid,
+            email: userCredential.user.email,
+            // Other user data would need to be fetched from Firestore here
+            role: "student" // Default role, should be fetched from Firestore
+          }
+        } 
+      });
     } catch (error) {
       toast({
         variant: "destructive",

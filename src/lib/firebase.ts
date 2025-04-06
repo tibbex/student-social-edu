@@ -1,6 +1,13 @@
 
 import { initializeApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { 
+  getAuth, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut,
+  PhoneAuthProvider,
+  RecaptchaVerifier
+} from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -18,6 +25,13 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Add RecaptchaVerifier to window object
+declare global {
+  interface Window {
+    recaptchaVerifier: RecaptchaVerifier | null;
+  }
+}
 
 export const createUser = (email: string, password: string) => {
   return createUserWithEmailAndPassword(auth, email, password);

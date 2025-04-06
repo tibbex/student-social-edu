@@ -9,6 +9,7 @@ import { useAuth } from "./contexts/AuthContext";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import VerifyCode from "./pages/VerifyCode";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/verify" element={<VerifyCode />} />
       <Route path="/dashboard/*" element={
         <ProtectedRoute>
           <Dashboard />
