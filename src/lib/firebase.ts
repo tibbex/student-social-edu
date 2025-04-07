@@ -7,7 +7,8 @@ import {
   signOut,
   sendEmailVerification as firebaseSendEmailVerification,
   applyActionCode,
-  checkActionCode
+  checkActionCode,
+  reload
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -67,6 +68,15 @@ export const verifyEmail = (actionCode: string) => {
 
 export const checkVerificationCode = (actionCode: string) => {
   return checkActionCode(auth, actionCode);
+};
+
+// New function to refresh the user state
+export const refreshUserState = async () => {
+  if (auth.currentUser) {
+    await reload(auth.currentUser);
+    return auth.currentUser.emailVerified;
+  }
+  return false;
 };
 
 export const uploadResource = async (file: File, path: string) => {

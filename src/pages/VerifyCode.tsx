@@ -9,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 import Logo from "@/components/Logo";
-import { ArrowLeft, Loader2, Mail, AlertCircle } from "lucide-react";
+import { ArrowLeft, Mail, AlertCircle } from "lucide-react";
 
 const VerifyCode = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -122,11 +122,11 @@ const VerifyCode = () => {
       
       toast({
         title: "Verification successful",
-        description: "Your email has been successfully verified.",
+        description: "Your email has been successfully verified. You can now post content on EduHub!",
       });
       
-      // Immediately redirect to dashboard
-      navigate("/dashboard");
+      // Force reload the page to update the auth state
+      window.location.href = "/dashboard";
       
     } catch (error) {
       console.error("Error verifying email:", error);

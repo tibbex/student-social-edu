@@ -24,6 +24,7 @@ interface AuthContextType {
   userData: UserData | null;
   loading: boolean;
   demoMode: boolean;
+  isEmailVerified: boolean;
   setUserData: (data: UserData) => void;
   startDemoMode: (role: UserRole) => void;
   endDemoMode: () => void;
@@ -49,11 +50,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [demoMode, setDemoMode] = useState(false);
   const [demoTimeout, setDemoTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
+      setIsEmailVerified(user?.emailVerified || false);
       setLoading(false);
     });
 
@@ -79,6 +82,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
     
     setUserDataState(demoUserData);
+    setIsEmailVerified(true); // Demo users are considered verified
     
     // Set a 10-minute timeout
     const timeout = setTimeout(() => {
@@ -104,6 +108,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
     setDemoMode(false);
     setUserDataState(null);
+    setIsEmailVerified(false);
   };
 
   const value = {
@@ -111,6 +116,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     userData,
     loading,
     demoMode,
+    isEmailVerified,
     setUserData,
     startDemoMode,
     endDemoMode

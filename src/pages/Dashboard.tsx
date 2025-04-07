@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const [showPostForm, setShowPostForm] = useState(false);
-  const { currentUser, userData, demoMode } = useAuth();
+  const { currentUser, userData, demoMode, isEmailVerified } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -37,6 +37,27 @@ const Dashboard = () => {
     }
   }, [currentUser, demoMode, navigate]);
 
+  useEffect(() => {
+    // Event listener for opening post form from anywhere in the app
+    const handleOpenPostForm = () => {
+      if (!isEmailVerified && !demoMode) {
+        toast({
+          title: "Email verification required",
+          description: "Please verify your email before posting content.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setShowPostForm(true);
+    };
+
+    window.addEventListener('openPostForm', handleOpenPostForm);
+    
+    return () => {
+      window.removeEventListener('openPostForm', handleOpenPostForm);
+    };
+  }, [isEmailVerified, demoMode, toast]);
+
   if (!userData && !demoMode) {
     return <div className="flex items-center justify-center h-screen">
       <div className="animate-pulse text-2xl text-edu-primary">Loading...</div>
@@ -51,7 +72,17 @@ const Dashboard = () => {
       {/* Main content */}
       <div className="flex-1 flex flex-col">
         <Header
-          openPostForm={() => setShowPostForm(true)}
+          openPostForm={() => {
+            if (!isEmailVerified && !demoMode) {
+              toast({
+                title: "Email verification required",
+                description: "Please verify your email before posting content.",
+                variant: "destructive",
+              });
+              return;
+            }
+            setShowPostForm(true);
+          }}
         />
         
         <main className="flex-1 p-4">
