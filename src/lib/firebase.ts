@@ -10,7 +10,7 @@ import {
   checkActionCode
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { getStorage, ref, getDownloadURL, uploadBytes } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCc8fZcL80Xi8yb2GtBJAfQgE47tKmFq9E",
@@ -49,6 +49,12 @@ export const verifyEmail = (actionCode: string) => {
 
 export const checkVerificationCode = (actionCode: string) => {
   return checkActionCode(auth, actionCode);
+};
+
+export const uploadResource = async (file: File, path: string) => {
+  const storageRef = ref(storage, path);
+  const snapshot = await uploadBytes(storageRef, file);
+  return getDownloadURL(snapshot.ref);
 };
 
 export default app;

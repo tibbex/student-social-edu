@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, FileText, Download, Calendar, User, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Resource } from "./Resources";
+import { storage } from "@/lib/firebase";
+import { ref, getDownloadURL } from "firebase/storage";
 
 interface ResourceDetailsProps {
   resource: Resource | null;
@@ -24,17 +26,26 @@ const ResourceDetails = ({ resource, isOpen, onClose }: ResourceDetailsProps) =>
 
   if (!resource) return null;
 
-  const handleDownload = () => {
-    // Simulate download start
-    toast({
-      title: "Download started",
-      description: `Your download of "${resource.title}" has started.`,
-    });
-    
-    // Close the dialog
-    setTimeout(() => {
-      onClose();
-    }, 1000);
+  const handleDownload = async () => {
+    try {
+      // In a real implementation, this would get the actual file from Firebase Storage
+      // For now, we'll simulate a successful download
+      toast({
+        title: "Download started",
+        description: `Your download of "${resource.title}" has started.`,
+      });
+      
+      // Close the dialog after starting download
+      setTimeout(() => {
+        onClose();
+      }, 1000);
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: "There was an error downloading the file. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -72,10 +83,7 @@ const ResourceDetails = ({ resource, isOpen, onClose }: ResourceDetailsProps) =>
           <div className="space-y-2">
             <h3 className="font-semibold">Description</h3>
             <p className="text-sm text-gray-600">
-              {resource.description || 
-                `This ${resource.type} covers essential ${resource.subject} concepts 
-                for students in grades ${resource.gradeLevel}. Created by ${resource.author} 
-                to enhance learning outcomes and provide quality educational materials.`}
+              {resource.description || "No description available."}
             </p>
           </div>
 
@@ -92,10 +100,12 @@ const ResourceDetails = ({ resource, isOpen, onClose }: ResourceDetailsProps) =>
               <Download className="h-4 w-4 text-gray-500" />
               <span className="text-sm">{resource.downloads} downloads</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-gray-500" />
-              <span className="text-sm">{resource.pages || '10-20'} pages</span>
-            </div>
+            {resource.pages && (
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-gray-500" />
+                <span className="text-sm">{resource.pages} pages</span>
+              </div>
+            )}
           </div>
         </div>
 

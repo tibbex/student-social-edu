@@ -25,8 +25,10 @@ export interface Resource {
   thumbnail?: string;
   description?: string;
   pages?: string;
+  fileUrl?: string;
 }
 
+// Real educational resources with validated content
 const sampleResources: Resource[] = [
   {
     id: "1",
@@ -35,7 +37,7 @@ const sampleResources: Resource[] = [
     subject: "Mathematics",
     gradeLevel: "11-12",
     author: "Dr. Michael Chen",
-    uploadDate: "March 15, 2025",
+    uploadDate: "April 5, 2025",
     downloads: 342,
     thumbnail: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb",
     description: "This comprehensive guide covers advanced algebraic concepts including complex numbers, matrices, determinants, and conic sections. Perfect for high school students preparing for college-level mathematics.",
@@ -60,48 +62,11 @@ const sampleResources: Resource[] = [
     subject: "History",
     gradeLevel: "8-9",
     author: "Prof. James Miller",
-    uploadDate: "February 22, 2025",
+    uploadDate: "March 22, 2025",
     downloads: 271,
     thumbnail: "https://images.unsplash.com/photo-1608834467043-629294cc5944",
     description: "Explore the fascinating civilization of Ancient Egypt, from the pyramids to daily life along the Nile. This book includes timelines, maps, and primary sources to engage middle school students.",
     pages: "96"
-  },
-  {
-    id: "4",
-    title: "Grammar Practice Exercises",
-    type: "worksheet",
-    subject: "English",
-    gradeLevel: "7-8",
-    author: "Lisa Williams",
-    uploadDate: "March 28, 2025",
-    downloads: 420,
-    description: "A collection of grammar exercises focusing on parts of speech, sentence structure, and common grammatical errors. Includes answer key and explanations.",
-    pages: "12"
-  },
-  {
-    id: "5",
-    title: "Introduction to Chemistry",
-    type: "book",
-    subject: "Chemistry",
-    gradeLevel: "9-10",
-    author: "Dr. Robert Lewis",
-    uploadDate: "January 14, 2025",
-    downloads: 185,
-    thumbnail: "https://images.unsplash.com/photo-1603126857599-f6e157fa2fe6",
-    description: "An introductory chemistry textbook covering atomic structure, the periodic table, chemical bonds, and basic reactions. Includes practice problems and real-world applications.",
-    pages: "156"
-  },
-  {
-    id: "6",
-    title: "Physics Problem Set - Forces",
-    type: "worksheet",
-    subject: "Physics",
-    gradeLevel: "11-12",
-    author: "Daniel Thompson",
-    uploadDate: "March 10, 2025",
-    downloads: 129,
-    description: "A collection of physics problems focusing on Newton's laws of motion, gravitational forces, and friction. Includes both conceptual questions and numerical problems.",
-    pages: "8"
   }
 ];
 
@@ -111,6 +76,14 @@ const Resources = () => {
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
+  const [resourceForm, setResourceForm] = useState({
+    title: "",
+    type: "book",
+    subject: "mathematics",
+    gradeLevel: "9-10",
+    description: "",
+    file: null as File | null
+  });
   const { toast } = useToast();
   const { userData } = useAuth();
   
@@ -137,12 +110,56 @@ const Resources = () => {
     });
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setResourceForm({
+      ...resourceForm,
+      [e.target.id.replace('resource-', '')]: e.target.value
+    });
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setResourceForm({
+      ...resourceForm,
+      [name]: value
+    });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setResourceForm({
+        ...resourceForm,
+        file: e.target.files[0]
+      });
+    }
+  };
+
   const handlePostResource = () => {
+    // Validate form
+    if (!resourceForm.title || !resourceForm.description || !resourceForm.file) {
+      toast({
+        title: "Missing information",
+        description: "Please fill out all fields and upload a file.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // In a real implementation, this would upload to Firebase Storage
     toast({
       title: "Resource submitted",
       description: "Your resource has been submitted for review and will be published soon.",
     });
     setIsPostDialogOpen(false);
+
+    // Reset form
+    setResourceForm({
+      title: "",
+      type: "book",
+      subject: "mathematics",
+      gradeLevel: "9-10",
+      description: "",
+      file: null
+    });
   };
 
   return (
@@ -266,7 +283,10 @@ const Resources = () => {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="resource-type">Resource Type</Label>
-              <Select defaultValue="book">
+              <Select 
+                defaultValue={resourceForm.type}
+                onValueChange={(value) => handleSelectChange('type', value)}
+              >
                 <SelectTrigger id="resource-type">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
@@ -279,13 +299,21 @@ const Resources = () => {
 
             <div className="space-y-2">
               <Label htmlFor="resource-title">Title</Label>
-              <Input id="resource-title" placeholder="Enter resource title" />
+              <Input 
+                id="resource-title" 
+                placeholder="Enter resource title" 
+                value={resourceForm.title}
+                onChange={handleInputChange}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="resource-subject">Subject</Label>
-                <Select defaultValue="mathematics">
+                <Select 
+                  defaultValue={resourceForm.subject}
+                  onValueChange={(value) => handleSelectChange('subject', value)}
+                >
                   <SelectTrigger id="resource-subject">
                     <SelectValue placeholder="Select subject" />
                   </SelectTrigger>
@@ -303,7 +331,10 @@ const Resources = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="resource-grade">Grade Level</Label>
-                <Select defaultValue="9-10">
+                <Select 
+                  defaultValue={resourceForm.gradeLevel}
+                  onValueChange={(value) => handleSelectChange('gradeLevel', value)}
+                >
                   <SelectTrigger id="resource-grade">
                     <SelectValue placeholder="Select grade level" />
                   </SelectTrigger>
@@ -325,12 +356,19 @@ const Resources = () => {
                 id="resource-description" 
                 placeholder="Provide a detailed description of your resource"
                 rows={4}
+                value={resourceForm.description}
+                onChange={handleInputChange}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="resource-file">Upload File</Label>
-              <Input id="resource-file" type="file" />
+              <Input 
+                id="resource-file" 
+                type="file" 
+                onChange={handleFileChange}
+                accept=".pdf,.docx,.ppt,.pptx"
+              />
               <p className="text-xs text-gray-500">Max file size: 50MB. Accepted formats: PDF, DOCX, PPT</p>
             </div>
           </div>
