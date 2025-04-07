@@ -9,12 +9,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 import Logo from "@/components/Logo";
-import { ArrowLeft, Loader2, Mail, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, AlertCircle } from "lucide-react";
 
 const VerifyCode = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
-  const [verificationSuccess, setVerificationSuccess] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const [resendDisabled, setResendDisabled] = useState(true);
   const navigate = useNavigate();
@@ -117,8 +116,6 @@ const VerifyCode = () => {
       // Verify the email with the action code
       await verifyEmail(code);
       
-      setVerificationSuccess(true);
-      
       if (userData) {
         setUserData(userData);
       }
@@ -128,10 +125,8 @@ const VerifyCode = () => {
         description: "Your email has been successfully verified.",
       });
       
-      // Delay navigation to dashboard to show success message
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 3000);
+      // Immediately redirect to dashboard
+      navigate("/dashboard");
       
     } catch (error) {
       console.error("Error verifying email:", error);
@@ -152,42 +147,6 @@ const VerifyCode = () => {
   const handleGoBack = () => {
     navigate("/");
   };
-
-  // Display success view if verification was successful
-  if (verificationSuccess) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-edu-light via-white to-edu-primary/20 animate-fade-in">
-        <div className="w-full max-w-md mb-6">
-          <Logo />
-        </div>
-        
-        <Card className="w-full max-w-md animate-slide-in">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center text-edu-dark">Email Verified!</CardTitle>
-            <CardDescription className="text-center">
-              Your email has been successfully verified
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-6 flex flex-col items-center">
-            <CheckCircle2 className="h-16 w-16 text-green-500" />
-            <AlertDescription className="text-center">
-              You will be redirected to the dashboard automatically.
-            </AlertDescription>
-          </CardContent>
-          
-          <CardFooter className="flex flex-col space-y-4">
-            <Button 
-              className="w-full"
-              onClick={() => navigate("/dashboard")}
-            >
-              Go to Dashboard
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-edu-light via-white to-edu-primary/20 animate-fade-in">
