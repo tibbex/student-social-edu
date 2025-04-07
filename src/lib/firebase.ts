@@ -18,7 +18,9 @@ import {
   getDoc, 
   getDocs, 
   query, 
-  where 
+  where,
+  orderBy,
+  Timestamp 
 } from 'firebase/firestore';
 import { 
   getStorage, 
@@ -73,6 +75,12 @@ export const uploadResource = async (file: File, path: string) => {
   return getDownloadURL(snapshot.ref);
 };
 
+export const uploadVideo = async (file: File, path: string) => {
+  const storageRef = ref(storage, path);
+  const snapshot = await uploadBytes(storageRef, file);
+  return getDownloadURL(snapshot.ref);
+};
+
 export const deleteResource = async (path: string) => {
   const storageRef = ref(storage, path);
   return deleteObject(storageRef);
@@ -81,6 +89,12 @@ export const deleteResource = async (path: string) => {
 export const getResourceFromStorage = async (path: string) => {
   const storageRef = ref(storage, path);
   return getDownloadURL(storageRef);
+};
+
+// Utility function to format firestore timestamps
+export const formatTimestamp = (timestamp: any) => {
+  if (!timestamp) return "Unknown date";
+  return new Date(timestamp.toDate()).toLocaleString();
 };
 
 export default app;

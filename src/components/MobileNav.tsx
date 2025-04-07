@@ -8,8 +8,8 @@ const MobileNav = () => {
     { icon: Home, label: "Home", path: "/dashboard" },
     { icon: PlayCircle, label: "Videos", path: "/dashboard/videos" },
     { icon: Plus, label: "Post", path: "#post" },
+    { icon: MessageCircle, label: "Messages", path: "/dashboard/messages" },
     { icon: BookOpen, label: "Resources", path: "/dashboard/resources" },
-    { icon: User, label: "Profile", path: "/dashboard/profile" },
   ];
 
   return (
