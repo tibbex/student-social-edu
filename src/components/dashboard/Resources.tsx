@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -12,6 +12,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { db, storage, uploadResource } from "@/lib/firebase";
+import { collection, addDoc, getDocs, query, orderBy, Timestamp } from "firebase/firestore";
 
 export interface Resource {
   id: string;
@@ -28,48 +30,6 @@ export interface Resource {
   fileUrl?: string;
 }
 
-// Real educational resources with validated content
-const sampleResources: Resource[] = [
-  {
-    id: "1",
-    title: "Advanced Algebra Concepts",
-    type: "book",
-    subject: "Mathematics",
-    gradeLevel: "11-12",
-    author: "Dr. Michael Chen",
-    uploadDate: "April 5, 2025",
-    downloads: 342,
-    thumbnail: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb",
-    description: "This comprehensive guide covers advanced algebraic concepts including complex numbers, matrices, determinants, and conic sections. Perfect for high school students preparing for college-level mathematics.",
-    pages: "128"
-  },
-  {
-    id: "2",
-    title: "Biology Cell Structure Worksheet",
-    type: "worksheet",
-    subject: "Biology",
-    gradeLevel: "9-10",
-    author: "Sarah Johnson",
-    uploadDate: "April 1, 2025",
-    downloads: 186,
-    description: "A detailed worksheet with diagrams and questions about cell structures and their functions. Includes both plant and animal cells with comparison activities.",
-    pages: "6"
-  },
-  {
-    id: "3",
-    title: "World History: Ancient Egypt",
-    type: "book",
-    subject: "History",
-    gradeLevel: "8-9",
-    author: "Prof. James Miller",
-    uploadDate: "March 22, 2025",
-    downloads: 271,
-    thumbnail: "https://images.unsplash.com/photo-1608834467043-629294cc5944",
-    description: "Explore the fascinating civilization of Ancient Egypt, from the pyramids to daily life along the Nile. This book includes timelines, maps, and primary sources to engage middle school students.",
-    pages: "96"
-  }
-];
-
 const Resources = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [resourceType, setResourceType] = useState<string>("all");
@@ -84,10 +44,56 @@ const Resources = () => {
     description: "",
     file: null as File | null
   });
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { userData } = useAuth();
   
-  const filteredResources = sampleResources.filter(resource => {
+  // Fetch resources from Firebase
+  useEffect(() => {
+    const fetchResources = async () => {
+      try {
+        setLoading(true);
+        const resourcesRef = collection(db, "resources");
+        const q = query(resourcesRef, orderBy("createdAt", "desc"));
+        const querySnapshot = await getDocs(q);
+        
+        const resourcesList: Resource[] = [];
+        querySnapshot.forEach(doc => {
+          const data = doc.data();
+          resourcesList.push({
+            id: doc.id,
+            title: data.title,
+            type: data.type,
+            subject: data.subject,
+            gradeLevel: data.gradeLevel,
+            author: data.author || "Unknown",
+            uploadDate: data.createdAt ? new Date(data.createdAt.toDate()).toLocaleDateString() : "Unknown date",
+            downloads: data.downloads || 0,
+            thumbnail: data.thumbnail,
+            description: data.description,
+            pages: data.pages,
+            fileUrl: data.fileUrl
+          });
+        });
+        
+        setResources(resourcesList);
+      } catch (error) {
+        console.error("Error fetching resources:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load resources. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResources();
+  }, [toast]);
+  
+  const filteredResources = resources.filter(resource => {
     const matchesSearch = resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          resource.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          resource.author.toLowerCase().includes(searchQuery.toLowerCase());
@@ -104,10 +110,27 @@ const Resources = () => {
 
   const handleDownload = (resource: Resource, e: React.MouseEvent) => {
     e.stopPropagation();
-    toast({
-      title: "Download started",
-      description: `Downloading ${resource.title}...`,
-    });
+    if (resource.fileUrl) {
+      // Create a temporary anchor element to trigger download
+      const link = document.createElement('a');
+      link.href = resource.fileUrl;
+      link.setAttribute('download', resource.title);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Update download count (would be done in a real implementation)
+      toast({
+        title: "Download started",
+        description: `Downloading ${resource.title}...`,
+      });
+    } else {
+      toast({
+        title: "Download unavailable",
+        description: "This resource doesn't have a downloadable file.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -133,7 +156,7 @@ const Resources = () => {
     }
   };
 
-  const handlePostResource = () => {
+  const handlePostResource = async () => {
     // Validate form
     if (!resourceForm.title || !resourceForm.description || !resourceForm.file) {
       toast({
@@ -144,22 +167,79 @@ const Resources = () => {
       return;
     }
 
-    // In a real implementation, this would upload to Firebase Storage
-    toast({
-      title: "Resource submitted",
-      description: "Your resource has been submitted for review and will be published soon.",
-    });
-    setIsPostDialogOpen(false);
-
-    // Reset form
-    setResourceForm({
-      title: "",
-      type: "book",
-      subject: "mathematics",
-      gradeLevel: "9-10",
-      description: "",
-      file: null
-    });
+    try {
+      // Upload file to Firebase Storage
+      const fileName = `${Date.now()}_${resourceForm.file.name}`;
+      const filePath = `resources/${fileName}`;
+      const fileUrl = await uploadResource(resourceForm.file, filePath);
+      
+      // Create resource document in Firestore
+      const resourceData = {
+        title: resourceForm.title,
+        type: resourceForm.type,
+        subject: resourceForm.subject,
+        gradeLevel: resourceForm.gradeLevel,
+        description: resourceForm.description,
+        fileUrl: fileUrl,
+        author: userData?.name || "Anonymous",
+        createdAt: Timestamp.now(),
+        downloads: 0,
+        pages: resourceForm.file ? Math.ceil(resourceForm.file.size / 100000).toString() : "Unknown" // Estimate pages
+      };
+      
+      await addDoc(collection(db, "resources"), resourceData);
+      
+      toast({
+        title: "Resource submitted",
+        description: "Your resource has been published successfully.",
+      });
+      
+      setIsPostDialogOpen(false);
+      
+      // Reset form
+      setResourceForm({
+        title: "",
+        type: "book",
+        subject: "mathematics",
+        gradeLevel: "9-10",
+        description: "",
+        file: null
+      });
+      
+      // Refresh resources list
+      const resourcesRef = collection(db, "resources");
+      const q = query(resourcesRef, orderBy("createdAt", "desc"));
+      const querySnapshot = await getDocs(q);
+      
+      const resourcesList: Resource[] = [];
+      querySnapshot.forEach(doc => {
+        const data = doc.data();
+        resourcesList.push({
+          id: doc.id,
+          title: data.title,
+          type: data.type,
+          subject: data.subject,
+          gradeLevel: data.gradeLevel,
+          author: data.author || "Unknown",
+          uploadDate: data.createdAt ? new Date(data.createdAt.toDate()).toLocaleDateString() : "Unknown date",
+          downloads: data.downloads || 0,
+          thumbnail: data.thumbnail,
+          description: data.description,
+          pages: data.pages,
+          fileUrl: data.fileUrl
+        });
+      });
+      
+      setResources(resourcesList);
+      
+    } catch (error) {
+      console.error("Error uploading resource:", error);
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your resource. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -208,63 +288,76 @@ const Resources = () => {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredResources.map((resource) => (
-          <Card 
-            key={resource.id} 
-            className="edu-card overflow-hidden card-hover cursor-pointer transition-transform hover:scale-[1.02]"
-            onClick={() => handleResourceClick(resource)}
-          >
-            <CardContent className="p-0">
-              {resource.thumbnail && (
-                <div className="h-36 overflow-hidden">
-                  <img 
-                    src={resource.thumbnail} 
-                    alt={resource.title}
-                    className="w-full h-36 object-cover"
-                  />
-                </div>
-              )}
-              
-              <div className="p-4">
-                <div className="flex items-center mb-2">
-                  {resource.type === "book" ? (
-                    <BookOpen className="h-4 w-4 text-edu-secondary mr-2" />
-                  ) : (
-                    <FileText className="h-4 w-4 text-edu-primary mr-2" />
-                  )}
-                  <span className="text-xs font-medium text-gray-600 uppercase">
-                    {resource.type}
-                  </span>
-                </div>
+      {loading ? (
+        <div className="flex justify-center items-center py-20">
+          <p className="text-gray-500">Loading resources...</p>
+        </div>
+      ) : filteredResources.length === 0 ? (
+        <div className="flex flex-col justify-center items-center py-20">
+          <p className="text-gray-500 mb-4">No resources found</p>
+          <Button onClick={() => setIsPostDialogOpen(true)}>
+            Be the first to post a resource
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredResources.map((resource) => (
+            <Card 
+              key={resource.id} 
+              className="edu-card overflow-hidden card-hover cursor-pointer transition-transform hover:scale-[1.02]"
+              onClick={() => handleResourceClick(resource)}
+            >
+              <CardContent className="p-0">
+                {resource.thumbnail && (
+                  <div className="h-36 overflow-hidden">
+                    <img 
+                      src={resource.thumbnail} 
+                      alt={resource.title}
+                      className="w-full h-36 object-cover"
+                    />
+                  </div>
+                )}
                 
-                <h3 className="font-semibold text-lg mb-1">{resource.title}</h3>
-                
-                <div className="mb-3">
-                  <p className="text-sm text-gray-600">{resource.subject} • Grade {resource.gradeLevel}</p>
-                  <p className="text-xs text-gray-500">By {resource.author}</p>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-500">
-                    {resource.downloads} downloads
-                  </span>
+                <div className="p-4">
+                  <div className="flex items-center mb-2">
+                    {resource.type === "book" ? (
+                      <BookOpen className="h-4 w-4 text-edu-secondary mr-2" />
+                    ) : (
+                      <FileText className="h-4 w-4 text-edu-primary mr-2" />
+                    )}
+                    <span className="text-xs font-medium text-gray-600 uppercase">
+                      {resource.type}
+                    </span>
+                  </div>
                   
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    className="flex items-center gap-1"
-                    onClick={(e) => handleDownload(resource, e)}
-                  >
-                    <Download className="h-3 w-3" />
-                    <span>Download</span>
-                  </Button>
+                  <h3 className="font-semibold text-lg mb-1">{resource.title}</h3>
+                  
+                  <div className="mb-3">
+                    <p className="text-sm text-gray-600">{resource.subject} • Grade {resource.gradeLevel}</p>
+                    <p className="text-xs text-gray-500">By {resource.author}</p>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500">
+                      {resource.downloads} downloads
+                    </span>
+                    
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="flex items-center gap-1"
+                      onClick={(e) => handleDownload(resource, e)}
+                    >
+                      <Download className="h-3 w-3" />
+                      <span>Download</span>
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Resource Details Modal */}
       <ResourceDetails 

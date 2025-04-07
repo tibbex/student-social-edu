@@ -9,8 +9,24 @@ import {
   applyActionCode,
   checkActionCode
 } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage, ref, getDownloadURL, uploadBytes } from 'firebase/storage';
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  updateDoc, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  query, 
+  where 
+} from 'firebase/firestore';
+import { 
+  getStorage, 
+  ref, 
+  getDownloadURL, 
+  uploadBytes,
+  deleteObject
+} from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCc8fZcL80Xi8yb2GtBJAfQgE47tKmFq9E",
@@ -55,6 +71,16 @@ export const uploadResource = async (file: File, path: string) => {
   const storageRef = ref(storage, path);
   const snapshot = await uploadBytes(storageRef, file);
   return getDownloadURL(snapshot.ref);
+};
+
+export const deleteResource = async (path: string) => {
+  const storageRef = ref(storage, path);
+  return deleteObject(storageRef);
+};
+
+export const getResourceFromStorage = async (path: string) => {
+  const storageRef = ref(storage, path);
+  return getDownloadURL(storageRef);
 };
 
 export default app;

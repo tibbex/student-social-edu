@@ -12,8 +12,6 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, FileText, Download, Calendar, User, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Resource } from "./Resources";
-import { storage } from "@/lib/firebase";
-import { ref, getDownloadURL } from "firebase/storage";
 
 interface ResourceDetailsProps {
   resource: Resource | null;
@@ -28,17 +26,31 @@ const ResourceDetails = ({ resource, isOpen, onClose }: ResourceDetailsProps) =>
 
   const handleDownload = async () => {
     try {
-      // In a real implementation, this would get the actual file from Firebase Storage
-      // For now, we'll simulate a successful download
-      toast({
-        title: "Download started",
-        description: `Your download of "${resource.title}" has started.`,
-      });
-      
-      // Close the dialog after starting download
-      setTimeout(() => {
-        onClose();
-      }, 1000);
+      if (resource.fileUrl) {
+        // Create a temporary anchor element to trigger download
+        const link = document.createElement('a');
+        link.href = resource.fileUrl;
+        link.setAttribute('download', resource.title);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast({
+          title: "Download started",
+          description: `Your download of "${resource.title}" has started.`,
+        });
+        
+        // Close the dialog after starting download
+        setTimeout(() => {
+          onClose();
+        }, 1000);
+      } else {
+        toast({
+          title: "Download unavailable",
+          description: "This resource doesn't have a downloadable file.",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       toast({
         title: "Download failed",
