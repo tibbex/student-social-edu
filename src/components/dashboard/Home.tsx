@@ -30,8 +30,9 @@ interface Post {
 const Home = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const { userData } = useAuth();
+  const { userData, currentUser, demoMode } = useAuth();
   const { toast } = useToast();
+  const isAuthenticated = currentUser || demoMode;
 
   useEffect(() => {
     // Fetch real posts from Firebase
@@ -76,6 +77,14 @@ const Home = () => {
   }, []);
 
   const handleLike = async (postId: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to like posts.",
+      });
+      return;
+    }
+
     try {
       // Update UI first for responsiveness
       setPosts(posts.map(post => {
@@ -123,6 +132,14 @@ const Home = () => {
   };
 
   const handleSave = (postId: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to save posts.",
+      });
+      return;
+    }
+
     setPosts(posts.map(post => {
       if (post.id === postId) {
         return { ...post, saved: !post.saved };
@@ -132,6 +149,14 @@ const Home = () => {
   };
 
   const handleComment = (postId: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to comment on posts.",
+      });
+      return;
+    }
+
     toast({
       title: "Feature coming soon",
       description: "Comment functionality will be available in the next update.",
@@ -167,7 +192,11 @@ const Home = () => {
         <div className="flex flex-col justify-center items-center py-20">
           <p className="text-gray-500 mb-4">No posts yet</p>
           <p className="text-sm text-center max-w-md">
-            Be the first to share something with the community! Click the "Create Post" button at the top of the page.
+            {isAuthenticated ? (
+              "Be the first to share something with the community! Click the 'Create Post' button at the top of the page."
+            ) : (
+              "No posts have been shared yet. Sign up to be the first to post!"
+            )}
           </p>
         </div>
       ) : (

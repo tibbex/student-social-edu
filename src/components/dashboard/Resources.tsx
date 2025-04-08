@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,9 +46,9 @@ const Resources = () => {
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const { userData } = useAuth();
+  const { userData, currentUser, demoMode } = useAuth();
+  const isAuthenticated = currentUser || demoMode;
   
-  // Fetch resources from Firebase
   useEffect(() => {
     const fetchResources = async () => {
       try {
@@ -111,7 +110,6 @@ const Resources = () => {
   const handleDownload = (resource: Resource, e: React.MouseEvent) => {
     e.stopPropagation();
     if (resource.fileUrl) {
-      // Create a temporary anchor element to trigger download
       const link = document.createElement('a');
       link.href = resource.fileUrl;
       link.setAttribute('download', resource.title);
@@ -119,7 +117,6 @@ const Resources = () => {
       link.click();
       document.body.removeChild(link);
 
-      // Update download count (would be done in a real implementation)
       toast({
         title: "Download started",
         description: `Downloading ${resource.title}...`,
@@ -157,7 +154,6 @@ const Resources = () => {
   };
 
   const handlePostResource = async () => {
-    // Validate form
     if (!resourceForm.title || !resourceForm.description || !resourceForm.file) {
       toast({
         title: "Missing information",
@@ -168,12 +164,10 @@ const Resources = () => {
     }
 
     try {
-      // Upload file to Firebase Storage
       const fileName = `${Date.now()}_${resourceForm.file.name}`;
       const filePath = `resources/${fileName}`;
       const fileUrl = await uploadResource(resourceForm.file, filePath);
       
-      // Create resource document in Firestore
       const resourceData = {
         title: resourceForm.title,
         type: resourceForm.type,
@@ -184,7 +178,7 @@ const Resources = () => {
         author: userData?.name || "Anonymous",
         createdAt: Timestamp.now(),
         downloads: 0,
-        pages: resourceForm.file ? Math.ceil(resourceForm.file.size / 100000).toString() : "Unknown" // Estimate pages
+        pages: resourceForm.file ? Math.ceil(resourceForm.file.size / 100000).toString() : "Unknown"
       };
       
       await addDoc(collection(db, "resources"), resourceData);
@@ -196,7 +190,6 @@ const Resources = () => {
       
       setIsPostDialogOpen(false);
       
-      // Reset form
       setResourceForm({
         title: "",
         type: "book",
@@ -206,7 +199,6 @@ const Resources = () => {
         file: null
       });
       
-      // Refresh resources list
       const resourcesRef = collection(db, "resources");
       const q = query(resourcesRef, orderBy("createdAt", "desc"));
       const querySnapshot = await getDocs(q);
@@ -247,13 +239,15 @@ const Resources = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Books & Worksheets</h1>
         
-        <Button 
-          onClick={() => setIsPostDialogOpen(true)}
-          className="bg-edu-accent hover:bg-edu-accent/90 flex items-center gap-1"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Post Resource</span>
-        </Button>
+        {isAuthenticated && (
+          <Button 
+            onClick={() => setIsPostDialogOpen(true)}
+            className="bg-edu-accent hover:bg-edu-accent/90 flex items-center gap-1"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Post Resource</span>
+          </Button>
+        )}
       </div>
       
       <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
@@ -295,9 +289,15 @@ const Resources = () => {
       ) : filteredResources.length === 0 ? (
         <div className="flex flex-col justify-center items-center py-20">
           <p className="text-gray-500 mb-4">No resources found</p>
-          <Button onClick={() => setIsPostDialogOpen(true)}>
-            Be the first to post a resource
-          </Button>
+          {isAuthenticated ? (
+            <Button onClick={() => setIsPostDialogOpen(true)}>
+              Be the first to post a resource
+            </Button>
+          ) : (
+            <Button asChild>
+              <a href="/login">Sign in to post resources</a>
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -359,123 +359,123 @@ const Resources = () => {
         </div>
       )}
 
-      {/* Resource Details Modal */}
       <ResourceDetails 
         resource={selectedResource}
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
       />
 
-      {/* Post Resource Dialog */}
-      <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Post New Resource</DialogTitle>
-          </DialogHeader>
+      {isAuthenticated && (
+        <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Post New Resource</DialogTitle>
+            </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="resource-type">Resource Type</Label>
-              <Select 
-                defaultValue={resourceForm.type}
-                onValueChange={(value) => handleSelectChange('type', value)}
-              >
-                <SelectTrigger id="resource-type">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="book">Book</SelectItem>
-                  <SelectItem value="worksheet">Worksheet</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="resource-title">Title</Label>
-              <Input 
-                id="resource-title" 
-                placeholder="Enter resource title" 
-                value={resourceForm.title}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="resource-subject">Subject</Label>
+                <Label htmlFor="resource-type">Resource Type</Label>
                 <Select 
-                  defaultValue={resourceForm.subject}
-                  onValueChange={(value) => handleSelectChange('subject', value)}
+                  defaultValue={resourceForm.type}
+                  onValueChange={(value) => setResourceForm({...resourceForm, type: value as "book" | "worksheet"})}
                 >
-                  <SelectTrigger id="resource-subject">
-                    <SelectValue placeholder="Select subject" />
+                  <SelectTrigger id="resource-type">
+                    <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="mathematics">Mathematics</SelectItem>
-                    <SelectItem value="science">Science</SelectItem>
-                    <SelectItem value="english">English</SelectItem>
-                    <SelectItem value="history">History</SelectItem>
-                    <SelectItem value="biology">Biology</SelectItem>
-                    <SelectItem value="chemistry">Chemistry</SelectItem>
-                    <SelectItem value="physics">Physics</SelectItem>
+                    <SelectItem value="book">Book</SelectItem>
+                    <SelectItem value="worksheet">Worksheet</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="resource-grade">Grade Level</Label>
-                <Select 
-                  defaultValue={resourceForm.gradeLevel}
-                  onValueChange={(value) => handleSelectChange('gradeLevel', value)}
-                >
-                  <SelectTrigger id="resource-grade">
-                    <SelectValue placeholder="Select grade level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1-2">Grades 1-2</SelectItem>
-                    <SelectItem value="3-4">Grades 3-4</SelectItem>
-                    <SelectItem value="5-6">Grades 5-6</SelectItem>
-                    <SelectItem value="7-8">Grades 7-8</SelectItem>
-                    <SelectItem value="9-10">Grades 9-10</SelectItem>
-                    <SelectItem value="11-12">Grades 11-12</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="resource-title">Title</Label>
+                <Input 
+                  id="resource-title" 
+                  placeholder="Enter resource title" 
+                  value={resourceForm.title}
+                  onChange={(e) => setResourceForm({...resourceForm, title: e.target.value})}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="resource-subject">Subject</Label>
+                  <Select 
+                    defaultValue={resourceForm.subject}
+                    onValueChange={(value) => setResourceForm({...resourceForm, subject: value})}
+                  >
+                    <SelectTrigger id="resource-subject">
+                      <SelectValue placeholder="Select subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mathematics">Mathematics</SelectItem>
+                      <SelectItem value="science">Science</SelectItem>
+                      <SelectItem value="english">English</SelectItem>
+                      <SelectItem value="history">History</SelectItem>
+                      <SelectItem value="biology">Biology</SelectItem>
+                      <SelectItem value="chemistry">Chemistry</SelectItem>
+                      <SelectItem value="physics">Physics</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="resource-grade">Grade Level</Label>
+                  <Select 
+                    defaultValue={resourceForm.gradeLevel}
+                    onValueChange={(value) => setResourceForm({...resourceForm, gradeLevel: value})}
+                  >
+                    <SelectTrigger id="resource-grade">
+                      <SelectValue placeholder="Select grade level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1-2">Grades 1-2</SelectItem>
+                      <SelectItem value="3-4">Grades 3-4</SelectItem>
+                      <SelectItem value="5-6">Grades 5-6</SelectItem>
+                      <SelectItem value="7-8">Grades 7-8</SelectItem>
+                      <SelectItem value="9-10">Grades 9-10</SelectItem>
+                      <SelectItem value="11-12">Grades 11-12</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="resource-description">Description</Label>
+                <Textarea 
+                  id="resource-description" 
+                  placeholder="Provide a detailed description of your resource"
+                  rows={4}
+                  value={resourceForm.description}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="resource-file">Upload File</Label>
+                <Input 
+                  id="resource-file" 
+                  type="file" 
+                  onChange={handleFileChange}
+                  accept=".pdf,.docx,.ppt,.pptx"
+                />
+                <p className="text-xs text-gray-500">Max file size: 50MB. Accepted formats: PDF, DOCX, PPT</p>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="resource-description">Description</Label>
-              <Textarea 
-                id="resource-description" 
-                placeholder="Provide a detailed description of your resource"
-                rows={4}
-                value={resourceForm.description}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="resource-file">Upload File</Label>
-              <Input 
-                id="resource-file" 
-                type="file" 
-                onChange={handleFileChange}
-                accept=".pdf,.docx,.ppt,.pptx"
-              />
-              <p className="text-xs text-gray-500">Max file size: 50MB. Accepted formats: PDF, DOCX, PPT</p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPostDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" onClick={handlePostResource}>
-              Submit Resource
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsPostDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" onClick={handlePostResource}>
+                Submit Resource
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

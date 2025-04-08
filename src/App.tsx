@@ -11,7 +11,6 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import VerifyCode from "./pages/VerifyCode";
 import NotFound from "./pages/NotFound";
-import PublicFeed from "./pages/PublicFeed";  // Add the new import
 
 const queryClient = new QueryClient();
 
@@ -37,10 +36,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<Login />} />
+      <Route path="/" element={<Dashboard />} />
+      <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/verify" element={<VerifyCode />} />
-      <Route path="/feed" element={<PublicFeed />} /> {/* Add the public feed route */}
       <Route path="/dashboard/*" element={
         <ProtectedRoute>
           <Dashboard />
