@@ -11,9 +11,6 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import VerifyCode from "./pages/VerifyCode";
 import NotFound from "./pages/NotFound";
-import Home from "./pages/Home";  // Renamed from PublicFeed to Home
-import PublicResources from "./pages/PublicResources";  // New component for public resources
-import PublicVideos from "./pages/PublicVideos";  // New component for public videos
 
 const queryClient = new QueryClient();
 
@@ -39,12 +36,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<Login />} />
+      <Route path="/" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/verify" element={<VerifyCode />} />
-      <Route path="/resources" element={<PublicResources />} />
-      <Route path="/videos" element={<PublicVideos />} />
       <Route path="/dashboard/*" element={
         <ProtectedRoute>
           <Dashboard />

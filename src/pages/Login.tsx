@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { doc, getDoc } from "firebase/firestore";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Loader2, Eye } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import Logo from "@/components/Logo";
 
 const Login = () => {
@@ -181,13 +181,6 @@ const Login = () => {
                 Sign up
               </Link>
             </div>
-            
-            <Button variant="outline" className="w-full flex items-center justify-center gap-2" asChild>
-              <Link to="/feed">
-                <Eye className="h-4 w-4" />
-                <span>View public posts</span>
-              </Link>
-            </Button>
             
             <div className="w-full">
               <p className="text-xs text-center text-gray-500 mb-2">Try before signing up</p>
