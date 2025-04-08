@@ -11,8 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { doc, getDoc } from "firebase/firestore";
-
-import { Laptop, Smartphone, Loader2 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Loader2 } from "lucide-react";
 import Logo from "@/components/Logo";
 
 const Login = () => {
@@ -20,7 +20,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
+  const isMobile = useIsMobile();
 
   const { startDemoMode, setUserData } = useAuth();
   const { toast } = useToast();
@@ -110,31 +110,12 @@ const Login = () => {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-edu-light via-white to-edu-primary/20 animate-fade-in ${
-      viewMode === "mobile" ? "max-w-md mx-auto" : ""
-    }`}>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-edu-light via-white to-edu-primary/20 animate-fade-in">
       <div className="w-full max-w-md mb-6">
         <Logo />
       </div>
       
-      <div className="w-full max-w-md">
-        <div className="flex justify-end mb-4">
-          <div className="bg-white rounded-full p-1 flex space-x-1 shadow-md">
-            <button 
-              className={`rounded-full p-1 ${viewMode === "desktop" ? "bg-edu-primary text-white" : "bg-transparent text-gray-500"}`}
-              onClick={() => setViewMode("desktop")}
-            >
-              <Laptop size={16} />
-            </button>
-            <button 
-              className={`rounded-full p-1 ${viewMode === "mobile" ? "bg-edu-primary text-white" : "bg-transparent text-gray-500"}`}
-              onClick={() => setViewMode("mobile")}
-            >
-              <Smartphone size={16} />
-            </button>
-          </div>
-        </div>
-
+      <div className={`w-full ${isMobile ? "max-w-[95%]" : "max-w-md"}`}>
         <Card className="animate-slide-in">
           <CardHeader>
             <CardTitle className="text-2xl text-center text-edu-dark">Welcome to EduHub</CardTitle>
@@ -181,7 +162,14 @@ const Login = () => {
                   </label>
                 </div>
                 <Button type="submit" className="btn-primary w-full" disabled={isLoading}>
-                  {isLoading ? "Logging in..." : "Login"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Logging in...
+                    </>
+                  ) : (
+                    "Login"
+                  )}
                 </Button>
               </div>
             </form>
