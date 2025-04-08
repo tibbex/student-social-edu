@@ -4,9 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Image, FileText, Video, X, Send } from "lucide-react";
+import { Image, FileText, Video, X, Send, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { db, storage, formatTimestamp } from "@/lib/firebase";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { v4 as uuidv4 } from "uuid";
 
 interface PostFormProps {
   onClose: () => void;
@@ -15,10 +19,11 @@ interface PostFormProps {
 const PostForm = ({ onClose }: PostFormProps) => {
   const [content, setContent] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
-  const { userData } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { userData, currentUser } = useAuth();
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!content.trim() && attachments.length === 0) {
@@ -30,13 +35,56 @@ const PostForm = ({ onClose }: PostFormProps) => {
       return;
     }
     
-    // Here you would post to Firebase
-    toast({
-      title: "Post created",
-      description: "Your post has been published successfully.",
-    });
-    
-    onClose();
+    try {
+      setIsSubmitting(true);
+      
+      // Upload attachments first if any
+      const uploadedAttachments = await Promise.all(
+        attachments.map(async (file) => {
+          const fileId = uuidv4();
+          const fileExtension = file.name.split('.').pop();
+          const filePath = `posts/${currentUser?.uid}/${fileId}.${fileExtension}`;
+          const storageRef = ref(storage, filePath);
+          
+          await uploadBytes(storageRef, file);
+          const url = await getDownloadURL(storageRef);
+          
+          return {
+            name: file.name,
+            type: file.type,
+            url,
+            path: filePath,
+          };
+        })
+      );
+      
+      // Create post document in Firestore
+      await addDoc(collection(db, "posts"), {
+        content,
+        attachments: uploadedAttachments,
+        createdAt: serverTimestamp(),
+        userId: currentUser?.uid,
+        userEmail: currentUser?.email,
+        userName: userData?.name || "Anonymous",
+        userRole: userData?.role || "student",
+      });
+      
+      toast({
+        title: "Post created",
+        description: "Your post has been published successfully.",
+      });
+      
+      onClose();
+    } catch (error) {
+      console.error("Error creating post:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to create post",
+        description: "There was an error creating your post. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,7 +115,7 @@ const PostForm = ({ onClose }: PostFormProps) => {
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg animate-fade-in">
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold">Create Post</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button variant="ghost" size="icon" onClick={onClose} disabled={isSubmitting}>
             <X className="h-5 w-5" />
           </Button>
         </div>
@@ -96,6 +144,7 @@ const PostForm = ({ onClose }: PostFormProps) => {
                 className="min-h-[120px] resize-none"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
+                disabled={isSubmitting}
               />
             </div>
             
@@ -120,6 +169,7 @@ const PostForm = ({ onClose }: PostFormProps) => {
                         size="icon"
                         className="absolute -top-2 -right-2 h-6 w-6 bg-white rounded-full border border-gray-200 shadow-sm"
                         onClick={() => removeAttachment(index)}
+                        disabled={isSubmitting}
                       >
                         <X className="h-3 w-3" />
                       </Button>
@@ -138,13 +188,15 @@ const PostForm = ({ onClose }: PostFormProps) => {
                 className="hidden"
                 onChange={handleAttachmentChange}
                 accept="image/*"
+                disabled={isSubmitting}
               />
-              <Label htmlFor="image-upload" className="cursor-pointer">
+              <Label htmlFor="image-upload" className={isSubmitting ? "cursor-not-allowed opacity-50" : "cursor-pointer"}>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   className="flex items-center gap-1 text-gray-600"
+                  disabled={isSubmitting}
                 >
                   <Image className="h-4 w-4" />
                   <span>Image</span>
@@ -157,13 +209,15 @@ const PostForm = ({ onClose }: PostFormProps) => {
                 className="hidden"
                 onChange={handleAttachmentChange}
                 accept="video/*"
+                disabled={isSubmitting}
               />
-              <Label htmlFor="video-upload" className="cursor-pointer">
+              <Label htmlFor="video-upload" className={isSubmitting ? "cursor-not-allowed opacity-50" : "cursor-pointer"}>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   className="flex items-center gap-1 text-gray-600"
+                  disabled={isSubmitting}
                 >
                   <Video className="h-4 w-4" />
                   <span>Video</span>
@@ -176,13 +230,15 @@ const PostForm = ({ onClose }: PostFormProps) => {
                 className="hidden"
                 onChange={handleAttachmentChange}
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                disabled={isSubmitting}
               />
-              <Label htmlFor="file-upload" className="cursor-pointer">
+              <Label htmlFor="file-upload" className={isSubmitting ? "cursor-not-allowed opacity-50" : "cursor-pointer"}>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   className="flex items-center gap-1 text-gray-600"
+                  disabled={isSubmitting}
                 >
                   <FileText className="h-4 w-4" />
                   <span>File</span>
@@ -193,10 +249,14 @@ const PostForm = ({ onClose }: PostFormProps) => {
             <Button 
               type="submit"
               className="flex items-center gap-1 bg-edu-primary hover:bg-edu-primary/90"
-              disabled={!content.trim() && attachments.length === 0}
+              disabled={(!content.trim() && attachments.length === 0) || isSubmitting}
             >
-              <Send className="h-4 w-4" />
-              <span>Post</span>
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              <span>{isSubmitting ? "Posting..." : "Post"}</span>
             </Button>
           </div>
         </form>

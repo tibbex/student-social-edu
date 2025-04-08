@@ -1,6 +1,7 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { signIn } from "@/lib/firebase";
+import { signIn, db, refreshUserState } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { doc, getDoc } from "firebase/firestore";
 
 import { Laptop, Smartphone, Loader2 } from "lucide-react";
 import Logo from "@/components/Logo";
@@ -20,9 +22,15 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
 
-  const { startDemoMode } = useAuth();
+  const { startDemoMode, setUserData } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Check if remember me was previously set
+  useEffect(() => {
+    const remembered = localStorage.getItem("rememberMe") === "true";
+    setRememberMe(remembered);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,18 +55,37 @@ const Login = () => {
         localStorage.removeItem("rememberMe");
       }
       
+      // Fetch user data from Firestore
+      const userDocRef = doc(db, "users", userCredential.user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (userDoc.exists()) {
+        const userData = {
+          id: userCredential.user.uid,
+          email: userCredential.user.email,
+          role: userDoc.data().role,
+          name: userDoc.data().name,
+          phone: userDoc.data().phone,
+          location: userDoc.data().location,
+          ...(userDoc.data().schoolName && { schoolName: userDoc.data().schoolName }),
+          ...(userDoc.data().grade && { grade: userDoc.data().grade }),
+          ...(userDoc.data().age && { age: userDoc.data().age }),
+          ...(userDoc.data().teachingGrades && { teachingGrades: userDoc.data().teachingGrades }),
+          ...(userDoc.data().ceo && { ceo: userDoc.data().ceo }),
+        };
+        
+        // Set the user data in context
+        setUserData(userData);
+      }
+      
       // Check if email is verified
-      if (!userCredential.user.emailVerified) {
+      const isVerified = await refreshUserState();
+      
+      if (!isVerified) {
         // Navigate to verification page if email is not verified
         navigate("/verify", { 
           state: { 
             email: userCredential.user.email,
-            userData: {
-              id: userCredential.user.uid,
-              email: userCredential.user.email,
-              // Other user data would need to be fetched from Firestore here
-              role: "student" // Default role, should be fetched from Firestore
-            }
           } 
         });
       } else {
@@ -66,6 +93,7 @@ const Login = () => {
         navigate("/dashboard");
       }
     } catch (error) {
+      console.error("Login error:", error);
       toast({
         variant: "destructive",
         title: "Login failed",

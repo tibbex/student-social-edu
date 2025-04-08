@@ -1,8 +1,8 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { auth } from '../lib/firebase';
+import { auth, db, refreshUserState } from '../lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { useToast } from "@/hooks/use-toast";
+import { doc, getDoc } from 'firebase/firestore';
 
 type UserRole = 'student' | 'teacher' | 'school';
 
@@ -54,18 +54,70 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
-      setIsEmailVerified(user?.emailVerified || false);
+      
+      if (user) {
+        // Check if email is verified
+        const isVerified = user.emailVerified;
+        setIsEmailVerified(isVerified);
+        
+        // Fetch user data from Firestore
+        try {
+          const userDocRef = doc(db, "users", user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const userData = {
+              id: user.uid,
+              email: user.email,
+              role: userDoc.data().role as UserRole,
+              name: userDoc.data().name,
+              phone: userDoc.data().phone,
+              location: userDoc.data().location,
+              ...(userDoc.data().schoolName && { schoolName: userDoc.data().schoolName }),
+              ...(userDoc.data().grade && { grade: userDoc.data().grade }),
+              ...(userDoc.data().age && { age: userDoc.data().age }),
+              ...(userDoc.data().teachingGrades && { teachingGrades: userDoc.data().teachingGrades }),
+              ...(userDoc.data().ceo && { ceo: userDoc.data().ceo }),
+            };
+            
+            setUserDataState(userData);
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      } else {
+        setUserDataState(null);
+        setIsEmailVerified(false);
+      }
+      
       setLoading(false);
     });
 
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    if (!demoMode && currentUser && !isEmailVerified) {
+      const checkVerificationInterval = setInterval(async () => {
+        const verified = await refreshUserState();
+        if (verified) {
+          setIsEmailVerified(true);
+          clearInterval(checkVerificationInterval);
+          toast({
+            title: "Email verified",
+            description: "Your email has been verified successfully.",
+          });
+        }
+      }, 30000); // Check every 30 seconds
+      
+      return () => clearInterval(checkVerificationInterval);
+    }
+  }, [currentUser, demoMode, isEmailVerified, toast]);
+
   const setUserData = (data: UserData) => {
     setUserDataState(data);
-    // Here you would typically save this data to Firestore as well
   };
 
   const startDemoMode = (role: UserRole) => {
