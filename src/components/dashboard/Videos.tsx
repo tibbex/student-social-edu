@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -40,8 +41,7 @@ const Videos = () => {
   });
   
   const { toast } = useToast();
-  const { userData, currentUser, demoMode } = useAuth();
-  const isAuthenticated = currentUser || demoMode;
+  const { userData } = useAuth();
 
   useEffect(() => {
     const fetchVideos = async () => {
@@ -243,15 +243,13 @@ const Videos = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Educational Videos</h1>
         
-        {isAuthenticated && (
-          <Button 
-            onClick={() => setIsUploadDialogOpen(true)}
-            className="bg-edu-accent hover:bg-edu-accent/90 flex items-center gap-1"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Upload Video</span>
-          </Button>
-        )}
+        <Button 
+          onClick={() => setIsUploadDialogOpen(true)}
+          className="bg-edu-accent hover:bg-edu-accent/90 flex items-center gap-1"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Upload Video</span>
+        </Button>
       </div>
       
       <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
@@ -287,15 +285,9 @@ const Videos = () => {
       ) : filteredVideos.length === 0 ? (
         <div className="flex flex-col justify-center items-center py-20">
           <p className="text-gray-500 mb-4">No videos found</p>
-          {isAuthenticated ? (
-            <Button onClick={() => setIsUploadDialogOpen(true)}>
-              Be the first to upload a video
-            </Button>
-          ) : (
-            <Button asChild>
-              <a href="/login">Sign in to upload videos</a>
-            </Button>
-          )}
+          <Button onClick={() => setIsUploadDialogOpen(true)}>
+            Be the first to upload a video
+          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -336,39 +328,38 @@ const Videos = () => {
         </div>
       )}
 
-      {/* Upload Video Dialog - Only shown for authenticated users */}
-      {isAuthenticated && (
-        <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Upload New Video</DialogTitle>
-            </DialogHeader>
+      {/* Upload Video Dialog */}
+      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Upload New Video</DialogTitle>
+          </DialogHeader>
 
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="video-title">Video Title</Label>
-                <Input 
-                  id="video-title" 
-                  placeholder="Enter video title" 
-                  value={videoForm.title}
-                  onChange={handleInputChange}
-                />
-              </div>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="video-title">Video Title</Label>
+              <Input 
+                id="video-title" 
+                placeholder="Enter video title" 
+                value={videoForm.title}
+                onChange={handleInputChange}
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="video-category">Category</Label>
-                <Select 
-                  defaultValue={videoForm.category}
-                  onValueChange={(value) => handleSelectChange('category', value)}
-                >
-                  <SelectTrigger id="video-category">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="educational">Educational</SelectItem>
-                    <SelectItem value="lecture">Lecture</SelectItem>
-                    <SelectItem value="tutorial">Tutorial</SelectItem>
-                  </SelectContent>
+            <div className="space-y-2">
+              <Label htmlFor="video-category">Category</Label>
+              <Select 
+                defaultValue={videoForm.category}
+                onValueChange={(value) => handleSelectChange('category', value)}
+              >
+                <SelectTrigger id="video-category">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="educational">Educational</SelectItem>
+                  <SelectItem value="lecture">Lecture</SelectItem>
+                  <SelectItem value="tutorial">Tutorial</SelectItem>
+                </SelectContent>
               </Select>
             </div>
 
@@ -415,8 +406,8 @@ const Videos = () => {
               <span>Upload Video</span>
             </Button>
           </DialogFooter>
-        </Dialog>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
