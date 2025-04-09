@@ -30,8 +30,11 @@ interface Post {
 const Home = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const { userData } = useAuth();
+  const { userData, currentUser, demoMode } = useAuth();
   const { toast } = useToast();
+  
+  // Check if the user is authenticated
+  const isAuthenticated = Boolean(currentUser || demoMode);
 
   useEffect(() => {
     // Fetch real posts from Firebase
@@ -76,6 +79,15 @@ const Home = () => {
   }, []);
 
   const handleLike = async (postId: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in or sign up to like posts.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       // Update UI first for responsiveness
       setPosts(posts.map(post => {
@@ -123,6 +135,15 @@ const Home = () => {
   };
 
   const handleSave = (postId: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in or sign up to save posts.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setPosts(posts.map(post => {
       if (post.id === postId) {
         return { ...post, saved: !post.saved };
@@ -132,6 +153,15 @@ const Home = () => {
   };
 
   const handleComment = (postId: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in or sign up to comment on posts.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     toast({
       title: "Feature coming soon",
       description: "Comment functionality will be available in the next update.",

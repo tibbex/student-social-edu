@@ -14,9 +14,9 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Protected Route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { currentUser, loading, demoMode } = useAuth();
+// Modified to allow access to the Dashboard content without authentication
+const AppRoutes = () => {
+  const { loading } = useAuth();
   
   if (loading) {
     return <div className="flex items-center justify-center h-screen">
@@ -24,26 +24,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     </div>;
   }
   
-  // Allow access if user is logged in or in demo mode
-  if (currentUser || demoMode) {
-    return <>{children}</>;
-  }
-  
-  // Redirect to login if not authorized
-  return <Navigate to="/" />;
-};
-
-const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/verify" element={<VerifyCode />} />
-      <Route path="/dashboard/*" element={
-        <ProtectedRoute>
-          <Dashboard />
-        </ProtectedRoute>
-      } />
+      <Route path="/dashboard/*" element={<Dashboard />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

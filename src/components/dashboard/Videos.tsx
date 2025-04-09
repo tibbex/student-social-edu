@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -13,6 +12,7 @@ import { collection, addDoc, getDocs, query, orderBy, Timestamp } from "firebase
 import { db, uploadVideo, formatTimestamp } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface Video {
   id: string;
@@ -42,7 +42,8 @@ const Videos = () => {
   
   const { toast } = useToast();
   const { userData, currentUser, demoMode } = useAuth();
-  const isAuthenticated = currentUser || demoMode;
+  const navigate = useNavigate();
+  const isAuthenticated = Boolean(currentUser || demoMode);
 
   useEffect(() => {
     const fetchVideos = async () => {
@@ -125,7 +126,6 @@ const Videos = () => {
   };
 
   const handleUploadVideo = async () => {
-    // Validate form
     if (!videoForm.title || !videoForm.description || !videoForm.file) {
       toast({
         title: "Missing information",
@@ -136,12 +136,10 @@ const Videos = () => {
     }
 
     try {
-      // Upload video file to Firebase Storage
       const videoFileName = `${Date.now()}_${videoForm.file.name}`;
       const videoPath = `videos/${videoFileName}`;
       const videoUrl = await uploadVideo(videoForm.file, videoPath);
       
-      // Upload thumbnail if available, or use a default
       let thumbnailUrl = "https://images.unsplash.com/photo-1635070041078-e363dbe005cb";
       if (videoForm.thumbnail) {
         const thumbnailFileName = `${Date.now()}_${videoForm.thumbnail.name}`;
@@ -149,13 +147,10 @@ const Videos = () => {
         thumbnailUrl = await uploadVideo(videoForm.thumbnail, thumbnailPath);
       }
 
-      // Calculate rough duration (this would normally be done server-side or with a media processing library)
-      // Just using a placeholder value based on file size for demo purposes
       const fileSizeInMB = videoForm.file.size / (1024 * 1024);
-      const estimatedMinutes = Math.max(1, Math.round(fileSizeInMB / 5)); // Rough estimate: 5MB per minute
+      const estimatedMinutes = Math.max(1, Math.round(fileSizeInMB / 5));
       const duration = `${String(Math.floor(estimatedMinutes / 60)).padStart(2, '0')}:${String(estimatedMinutes % 60).padStart(2, '0')}`;
       
-      // Create video document in Firestore
       const videoData = {
         title: videoForm.title,
         category: videoForm.category,
@@ -177,7 +172,6 @@ const Videos = () => {
       
       setIsUploadDialogOpen(false);
       
-      // Reset form
       setVideoForm({
         title: "",
         category: "educational",
@@ -186,7 +180,6 @@ const Videos = () => {
         thumbnail: null
       });
       
-      // Refresh videos list
       const videosRef = collection(db, "videos");
       const q = query(videosRef, orderBy("createdAt", "desc"));
       const querySnapshot = await getDocs(q);
@@ -229,10 +222,8 @@ const Videos = () => {
       return;
     }
     
-    // Open the video in a new tab
     window.open(videoUrl, '_blank');
     
-    // In a real app, you might want to increment the view count here
     toast({
       title: "Video playing",
       description: "The video is now playing in a new tab.",
@@ -285,7 +276,7 @@ const Videos = () => {
         <div className="flex justify-center items-center py-20">
           <p className="text-gray-500">Loading videos...</p>
         </div>
-      ) : filteredVideos.length === 0 ? (
+      ) : videos.length === 0 ? (
         <div className="flex flex-col justify-center items-center py-20">
           <p className="text-gray-500 mb-4">No videos found</p>
           {isAuthenticated ? (
@@ -293,8 +284,8 @@ const Videos = () => {
               Be the first to upload a video
             </Button>
           ) : (
-            <Button asChild>
-              <a href="/login">Sign in to upload videos</a>
+            <Button onClick={() => navigate("/")}>
+              Sign in to upload videos
             </Button>
           )}
         </div>
@@ -337,7 +328,6 @@ const Videos = () => {
         </div>
       )}
 
-      {/* Upload Video Dialog - Only shown for authenticated users */}
       {isAuthenticated && (
         <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
           <DialogContent className="sm:max-w-lg">
@@ -367,8 +357,8 @@ const Videos = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="educational">Educational</SelectItem>
-                    <SelectItem value="lecture">Lecture</SelectItem>
-                    <SelectItem value="tutorial">Tutorial</SelectItem>
+                    <SelectItem value="lecture">Lectures</SelectItem>
+                    <SelectItem value="tutorial">Tutorials</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -411,7 +401,11 @@ const Videos = () => {
               <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" onClick={handleUploadVideo} className="flex items-center gap-1">
+              <Button 
+                type="submit" 
+                onClick={handleUploadVideo} 
+                className="flex items-center gap-1"
+              >
                 <Upload className="h-4 w-4" />
                 <span>Upload Video</span>
               </Button>
