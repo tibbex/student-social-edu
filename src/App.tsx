@@ -14,7 +14,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Modified to allow access to the Dashboard content without authentication
+// Protected route component to handle authentication
 const AppRoutes = () => {
   const { loading } = useAuth();
   
