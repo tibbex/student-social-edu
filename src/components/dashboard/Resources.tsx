@@ -10,7 +10,7 @@ import ResourceDetails from "./ResourceDetails";
 import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-interface Resource {
+export interface Resource {
   id: string;
   title: string;
   description: string;
@@ -22,6 +22,12 @@ interface Resource {
   category: string;
   tags: string[];
   downloads: number;
+  type?: string;
+  author?: string;
+  subject?: string;
+  gradeLevel?: string;
+  thumbnail?: string;
+  pages?: number;
 }
 
 const Resources = () => {
@@ -84,7 +90,6 @@ const Resources = () => {
   }, [activeCategory, toast]);
   
   useEffect(() => {
-    // Extract unique categories and tags from resources
     const uniqueCategories = [...new Set(resources.map(r => r.category))];
     const allTags = resources.map(r => r.tags).flat();
     const uniqueTags = [...new Set(allTags)];
@@ -192,7 +197,6 @@ const Resources = () => {
         <ResourceDetails 
           resource={selectedResource}
           onClose={() => setSelectedResource(null)}
-          isAuthenticated={isAuthenticated}
         />
       )}
     </div>
