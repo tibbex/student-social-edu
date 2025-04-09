@@ -15,11 +15,10 @@ import { Resource } from "./Resources";
 
 interface ResourceDetailsProps {
   resource: Resource | null;
-  isOpen: boolean;
   onClose: () => void;
 }
 
-const ResourceDetails = ({ resource, isOpen, onClose }: ResourceDetailsProps) => {
+const ResourceDetails = ({ resource, onClose }: ResourceDetailsProps) => {
   const { toast } = useToast();
 
   if (!resource) return null;
@@ -61,7 +60,7 @@ const ResourceDetails = ({ resource, isOpen, onClose }: ResourceDetailsProps) =>
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <div className="flex items-center gap-2 mb-1">
