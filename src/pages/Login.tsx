@@ -20,6 +20,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [verifyingEmail, setVerifyingEmail] = useState(false);
   const isMobile = useIsMobile();
 
   const { startDemoMode, setUserData } = useAuth();
@@ -30,6 +31,14 @@ const Login = () => {
   useEffect(() => {
     const remembered = localStorage.getItem("rememberMe") === "true";
     setRememberMe(remembered);
+    
+    // Check for saved credentials if rememberMe is true
+    if (remembered) {
+      const savedEmail = localStorage.getItem("savedEmail");
+      if (savedEmail) {
+        setEmail(savedEmail);
+      }
+    }
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -48,11 +57,13 @@ const Login = () => {
       setIsLoading(true);
       const userCredential = await signIn(email, password);
       
-      // Store remember me preference
+      // Store remember me preference and email
       if (rememberMe) {
         localStorage.setItem("rememberMe", "true");
+        localStorage.setItem("savedEmail", email);
       } else {
         localStorage.removeItem("rememberMe");
+        localStorage.removeItem("savedEmail");
       }
       
       // Fetch user data from Firestore
@@ -78,8 +89,10 @@ const Login = () => {
         setUserData(userData);
       }
       
-      // Check if email is verified
+      // Check if email is verified - immediately check
+      setVerifyingEmail(true);
       const isVerified = await refreshUserState();
+      setVerifyingEmail(false);
       
       if (!isVerified) {
         // Navigate to verification page if email is not verified
@@ -89,7 +102,11 @@ const Login = () => {
           } 
         });
       } else {
-        // Email already verified, navigate directly to dashboard
+        // Email already verified, navigate directly to dashboard with a success toast
+        toast({
+          title: "Login successful",
+          description: "Welcome back to EduHub!",
+        });
         navigate("/dashboard");
       }
     } catch (error) {
@@ -161,11 +178,11 @@ const Login = () => {
                     Remember me
                   </label>
                 </div>
-                <Button type="submit" className="btn-primary w-full" disabled={isLoading}>
-                  {isLoading ? (
+                <Button type="submit" className="btn-primary w-full" disabled={isLoading || verifyingEmail}>
+                  {isLoading || verifyingEmail ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Logging in...
+                      {verifyingEmail ? "Verifying..." : "Logging in..."}
                     </>
                   ) : (
                     "Login"
@@ -194,7 +211,7 @@ const Login = () => {
                   <Button 
                     variant="outline"
                     className="w-full text-xs"
-                    onClick={() => startDemo("student")}
+                    onClick={() => startDemoMode("student")}
                   >
                     Try as Student (10 min)
                   </Button>
@@ -203,7 +220,7 @@ const Login = () => {
                   <Button 
                     variant="outline"
                     className="w-full text-xs"
-                    onClick={() => startDemo("teacher")}
+                    onClick={() => startDemoMode("teacher")}
                   >
                     Try as Teacher (10 min)
                   </Button>
@@ -212,7 +229,7 @@ const Login = () => {
                   <Button 
                     variant="outline"
                     className="w-full text-xs"
-                    onClick={() => startDemo("school")}
+                    onClick={() => startDemoMode("school")}
                   >
                     Try as School (10 min)
                   </Button>

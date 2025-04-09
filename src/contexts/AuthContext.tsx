@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db, refreshUserState } from '../lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -58,6 +59,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setCurrentUser(user);
       
       if (user) {
+        // Force refresh the user to get the latest emailVerified status
+        await refreshUserState();
         // Check if email is verified
         const isVerified = user.emailVerified;
         setIsEmailVerified(isVerified);
@@ -100,6 +103,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     if (!demoMode && currentUser && !isEmailVerified) {
+      // Check verification status more frequently (every 10 seconds)
       const checkVerificationInterval = setInterval(async () => {
         const verified = await refreshUserState();
         if (verified) {
@@ -110,7 +114,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             description: "Your email has been verified successfully.",
           });
         }
-      }, 30000); // Check every 30 seconds
+      }, 10000); // Check every 10 seconds instead of 30
       
       return () => clearInterval(checkVerificationInterval);
     }

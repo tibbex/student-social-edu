@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { auth, sendVerificationEmail, verifyEmail, checkVerificationCode } from "@/lib/firebase";
+import { auth, sendVerificationEmail, verifyEmail, checkVerificationCode, refreshUserState } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,17 +9,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 import Logo from "@/components/Logo";
-import { ArrowLeft, Mail, AlertCircle } from "lucide-react";
+import { ArrowLeft, Mail, AlertCircle, Loader2 } from "lucide-react";
 
 const VerifyCode = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
-  const [countdown, setCountdown] = useState(60);
+  const [countdown, setCountdown] = useState(30); // Reduced from 60 to 30
   const [resendDisabled, setResendDisabled] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { setUserData } = useAuth();
+  const { setUserData, isEmailVerified } = useAuth();
   const [searchParams] = useSearchParams();
   
   // Extract email and userData from location state
@@ -28,6 +28,18 @@ const VerifyCode = () => {
 
   // Check if we have an oobCode from the verification email link
   const oobCode = searchParams.get('oobCode');
+
+  // Check automatic verification status
+  useEffect(() => {
+    if (isEmailVerified) {
+      // If email is already verified, redirect to dashboard immediately
+      toast({
+        title: "Email already verified",
+        description: "Your account is verified. Redirecting to dashboard."
+      });
+      navigate("/dashboard");
+    }
+  }, [isEmailVerified, navigate, toast]);
 
   useEffect(() => {
     // If oobCode is present in URL, verify it automatically
@@ -70,6 +82,27 @@ const VerifyCode = () => {
     };
   }, [email, toast, navigate, oobCode, codeSent]);
 
+  // Add an additional check to verify email status periodically
+  useEffect(() => {
+    const checkEmailVerification = async () => {
+      if (auth.currentUser && !isEmailVerified) {
+        const verified = await refreshUserState();
+        if (verified) {
+          toast({
+            title: "Email verified",
+            description: "Your email has been successfully verified."
+          });
+          // Redirect to dashboard after successful verification
+          setTimeout(() => navigate("/dashboard"), 1000);
+        }
+      }
+    };
+    
+    // Check every 5 seconds if email is verified
+    const interval = setInterval(checkEmailVerification, 5000);
+    return () => clearInterval(interval);
+  }, [navigate, toast, isEmailVerified]);
+
   const handleSendVerificationEmail = async () => {
     if (!auth.currentUser) {
       toast({
@@ -91,7 +124,7 @@ const VerifyCode = () => {
       });
       
       // Reset countdown for resend
-      setCountdown(60);
+      setCountdown(30); // Reduced from 60 to 30
       setResendDisabled(true);
       setCodeSent(true);
     } catch (error) {
@@ -198,6 +231,14 @@ const VerifyCode = () => {
         </CardContent>
         
         <CardFooter className="flex flex-col space-y-4">
+          <div className="w-full text-center mb-2 text-sm text-gray-500">
+            {isLoading && (
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Checking verification status...</span>
+              </div>
+            )}
+          </div>
           <Button 
             className="w-full"
             onClick={handleGoBack}
