@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,7 +6,7 @@ import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal } from "lucide-r
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, updateDoc, doc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, where, updateDoc, doc } from "firebase/firestore";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Post {
@@ -26,6 +25,7 @@ interface Post {
   comments: number;
   shares: number;
   saved: boolean;
+  visibleTo?: string[];
 }
 
 const Home = () => {
@@ -37,12 +37,19 @@ const Home = () => {
   const isAuthenticated = Boolean(currentUser || demoMode);
 
   useEffect(() => {
-    // Fetch real posts from Firebase
     const fetchPosts = async () => {
+      if (!isAuthenticated) return;
+
       try {
         setLoading(true);
         const postsRef = collection(db, "posts");
-        const q = query(postsRef, orderBy("createdAt", "desc"));
+        let q = query(postsRef, orderBy("createdAt", "desc"));
+
+        // Add role-based filtering
+        if (userData && userData.role !== 'school') {
+          q = query(q, where('visibleTo', 'array-contains', userData.role));
+        }
+        
         const querySnapshot = await getDocs(q);
         
         const fetchedPosts: Post[] = [];
@@ -64,6 +71,7 @@ const Home = () => {
             comments: data.comments || 0,
             shares: data.shares || 0,
             saved: false, // We'll manage this client-side
+            visibleTo: data.visibleTo || ['student', 'teacher', 'school'], // Default visibility
           });
         });
         
@@ -76,7 +84,7 @@ const Home = () => {
     };
 
     fetchPosts();
-  }, []);
+  }, [isAuthenticated, userData]);
 
   const handleLike = async (postId: string) => {
     if (!isAuthenticated) {

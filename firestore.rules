@@ -1,0 +1,23 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function hasValidRole() {
+      return request.auth.token.role in ['student', 'teacher', 'school'];
+    }
+    
+    match /posts/{postId} {
+      allow read: if isAuthenticated() && hasValidRole();
+      allow write: if isAuthenticated() && hasValidRole();
+    }
+    
+    match /resources/{resourceId} {
+      allow read: if isAuthenticated() && hasValidRole();
+      allow write: if isAuthenticated() && hasValidRole();
+    }
+  }
+}
