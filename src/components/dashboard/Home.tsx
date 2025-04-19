@@ -7,7 +7,8 @@ import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal } from "lucide-r
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, updateDoc, doc, increment } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, updateDoc, doc } from "firebase/firestore";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Post {
   id: string;
@@ -33,7 +34,6 @@ const Home = () => {
   const { userData, currentUser, demoMode } = useAuth();
   const { toast } = useToast();
   
-  // Check if the user is authenticated
   const isAuthenticated = Boolean(currentUser || demoMode);
 
   useEffect(() => {
@@ -186,107 +186,149 @@ const Home = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto pb-16">
-      <h1 className="text-2xl font-bold mb-6">Feed</h1>
-      
-      {loading ? (
-        <div className="flex justify-center items-center py-20">
-          <p className="text-gray-500">Loading posts...</p>
+    <ScrollArea className="h-[calc(100vh-5rem)] w-full">
+      <div className="max-w-3xl mx-auto pb-16 px-4">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Your Feed</h1>
+          <Button
+            onClick={() => window.dispatchEvent(new CustomEvent('openPostForm'))}
+            className="bg-edu-accent hover:bg-edu-accent/90"
+          >
+            Share something
+          </Button>
         </div>
-      ) : posts.length === 0 ? (
-        <div className="flex flex-col justify-center items-center py-20">
-          <p className="text-gray-500 mb-4">No posts yet</p>
-          <p className="text-sm text-center max-w-md">
-            Be the first to share something with the community! Click the "Create Post" button at the top of the page.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {posts.map((post) => (
-            <Card key={post.id} className="edu-card overflow-hidden">
-              <CardContent className="p-0">
-                <div className="p-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={post.author.avatar} />
-                        <AvatarFallback className={`${
-                          post.author.role === "teacher" ? "bg-edu-secondary" : 
-                          post.author.role === "school" ? "bg-edu-primary" : "bg-edu-accent"
-                        } text-white`}>
-                          {getInitials(post.author.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h3 className="font-semibold">{post.author.name}</h3>
-                        <p className="text-xs text-gray-500">{post.timePosted}</p>
+        
+        {loading ? (
+          <div className="grid grid-cols-1 gap-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="edu-card">
+                <CardContent className="p-6">
+                  <div className="animate-pulse flex space-x-4">
+                    <div className="h-12 w-12 rounded-full bg-gray-200"></div>
+                    <div className="flex-1 space-y-4">
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="space-y-3">
+                        <div className="h-4 bg-gray-200 rounded"></div>
+                        <div className="h-4 bg-gray-200 rounded w-5/6"></div>
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-5 w-5" />
-                    </Button>
                   </div>
-                  <p className="text-gray-800 mb-4">{post.content}</p>
-                  
-                  {post.media && post.mediaType === "image" && (
-                    <div className="mb-4 rounded-md overflow-hidden bg-gray-100">
-                      <img 
-                        src={post.media} 
-                        alt="Post content" 
-                        className="w-full h-64 object-cover"
-                      />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : posts.length === 0 ? (
+          <Card className="edu-card">
+            <CardContent className="flex flex-col items-center justify-center p-12 text-center">
+              <div className="rounded-full bg-edu-accent/10 p-4 mb-4">
+                <MessageCircle className="h-8 w-8 text-edu-accent" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">No posts yet</h3>
+              <p className="text-gray-500 mb-6 max-w-sm">
+                Be the first to share something with the community!
+              </p>
+              <Button 
+                onClick={() => window.dispatchEvent(new CustomEvent('openPostForm'))}
+                className="bg-edu-accent hover:bg-edu-accent/90"
+              >
+                Create your first post
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-6">
+            {posts.map((post) => (
+              <Card key={post.id} className="edu-card overflow-hidden hover:shadow-lg transition-shadow duration-200">
+                <CardContent className="p-0">
+                  <div className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12 border-2 border-edu-primary/10">
+                          <AvatarImage src={post.author.avatar} />
+                          <AvatarFallback className={`${
+                            post.author.role === "teacher" ? "bg-edu-secondary" : 
+                            post.author.role === "school" ? "bg-edu-primary" : "bg-edu-accent"
+                          } text-white text-lg`}>
+                            {getInitials(post.author.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-gray-900">{post.author.name}</h3>
+                            <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+                              {post.author.role}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500">{post.timePosted}</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="icon" className="hover:bg-gray-100">
+                        <MoreHorizontal className="h-5 w-5" />
+                      </Button>
                     </div>
-                  )}
-                </div>
-                
-                <div className="border-t border-gray-100 px-4 py-2 flex items-center justify-between">
-                  <div className="flex items-center gap-6">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleLike(post.id)}
-                      className={`flex items-center gap-1 ${post.liked ? "text-red-500" : "text-gray-500"}`}
-                    >
-                      <Heart className={`h-4 w-4 ${post.liked ? "fill-current" : ""}`} />
-                      <span>{post.likes}</span>
-                    </Button>
+                    <p className="text-gray-800 mb-4 whitespace-pre-wrap">{post.content}</p>
                     
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleComment(post.id)}
-                      className="flex items-center gap-1 text-gray-500"
-                    >
-                      <MessageCircle className="h-4 w-4" />
-                      <span>{post.comments}</span>
-                    </Button>
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleShare(post.id)}
-                      className="flex items-center gap-1 text-gray-500"
-                    >
-                      <Share2 className="h-4 w-4" />
-                      <span>{post.shares}</span>
-                    </Button>
+                    {post.media && post.mediaType === "image" && (
+                      <div className="mb-4 rounded-lg overflow-hidden bg-gray-100">
+                        <img 
+                          src={post.media} 
+                          alt="Post content" 
+                          className="w-full h-auto max-h-96 object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
                   </div>
                   
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleSave(post.id)}
-                    className={post.saved ? "text-edu-primary" : "text-gray-500"}
-                  >
-                    <Bookmark className={`h-4 w-4 ${post.saved ? "fill-current" : ""}`} />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
+                  <div className="border-t border-gray-100 px-6 py-3 flex items-center justify-between bg-gray-50">
+                    <div className="flex items-center gap-6">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleLike(post.id)}
+                        className={`flex items-center gap-2 ${post.liked ? "text-red-500" : "text-gray-600"}`}
+                      >
+                        <Heart className={`h-4 w-4 ${post.liked ? "fill-current" : ""}`} />
+                        <span className="text-sm">{post.likes}</span>
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleComment(post.id)}
+                        className="flex items-center gap-2 text-gray-600"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        <span className="text-sm">{post.comments}</span>
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleShare(post.id)}
+                        className="flex items-center gap-2 text-gray-600"
+                      >
+                        <Share2 className="h-4 w-4" />
+                        <span className="text-sm">{post.shares}</span>
+                      </Button>
+                    </div>
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSave(post.id)}
+                      className={post.saved ? "text-edu-primary" : "text-gray-600"}
+                    >
+                      <Bookmark className={`h-4 w-4 ${post.saved ? "fill-current" : ""}`} />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </ScrollArea>
   );
 };
 

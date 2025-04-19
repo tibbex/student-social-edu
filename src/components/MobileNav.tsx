@@ -19,7 +19,6 @@ const MobileNav = () => {
       return;
     }
     
-    // Trigger the post form visibility in Dashboard
     const event = new CustomEvent('openPostForm');
     window.dispatchEvent(event);
   };
@@ -33,31 +32,31 @@ const MobileNav = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10">
-      <ul className="flex justify-around items-center">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+      <ul className="flex justify-around items-center px-2">
         {menuItems.map((item, index) => (
-          <li key={item.path || index} className="w-full">
+          <li key={item.path || index} className="relative">
             {item.action ? (
               <button 
-                className="w-full flex flex-col items-center justify-center py-3"
                 onClick={item.action}
+                className="w-16 -mt-5 flex flex-col items-center justify-center"
               >
-                <div className="h-12 w-12 rounded-full bg-edu-accent flex items-center justify-center text-white shadow-lg">
+                <div className="h-12 w-12 rounded-full bg-edu-accent flex items-center justify-center text-white shadow-lg shadow-edu-accent/25">
                   <item.icon className="h-6 w-6" />
                 </div>
-                <span className="text-xs">{item.label}</span>
+                <span className="mt-1 text-xs font-medium text-gray-600">{item.label}</span>
               </button>
             ) : (
               <NavLink
                 to={item.path}
                 className={({ isActive }) => cn(
-                  "flex flex-col items-center gap-1 py-3",
+                  "flex flex-col items-center gap-1 py-3 w-16",
                   isActive ? "text-edu-primary" : "text-gray-500"
                 )}
                 end={item.path === "/dashboard"}
               >
                 <item.icon className="h-6 w-6" />
-                <span className="text-xs">{item.label}</span>
+                <span className="text-xs font-medium">{item.label}</span>
               </NavLink>
             )}
           </li>
