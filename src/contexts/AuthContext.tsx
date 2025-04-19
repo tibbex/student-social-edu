@@ -55,6 +55,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const { toast } = useToast();
 
+  // Check for demo mode in localStorage on initial load
+  useEffect(() => {
+    const storedDemoMode = localStorage.getItem('demoMode');
+    const storedDemoRole = localStorage.getItem('demoRole') as UserRole | null;
+    
+    if (storedDemoMode === 'true' && storedDemoRole) {
+      setDemoMode(true);
+      
+      // Recreate demo user data
+      const demoUserData: UserData = {
+        id: 'demo-user',
+        email: 'demo@example.com',
+        role: storedDemoRole,
+        name: storedDemoRole === 'student' ? 'Demo Student' : 
+              storedDemoRole === 'teacher' ? 'Demo Teacher' : 'Demo School',
+      };
+      
+      setUserDataState(demoUserData);
+      setIsEmailVerified(true);
+      
+      // Reset the timeout
+      const timeout = setTimeout(() => {
+        endDemoMode();
+        toast({
+          title: "Demo mode ended",
+          description: "Your 10-minute demo period has expired.",
+          variant: "destructive",
+        });
+      }, 10 * 60 * 1000); // 10 minutes
+      
+      setDemoTimeout(timeout);
+    }
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -132,6 +166,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Create demo user
     setDemoMode(true);
     
+    // Store demo mode in localStorage
+    localStorage.setItem('demoMode', 'true');
+    localStorage.setItem('demoRole', role);
+    
     // Generate demo user data
     const demoUserData: UserData = {
       id: 'demo-user',
@@ -169,9 +207,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (demoTimeout) {
       clearTimeout(demoTimeout);
     }
+    
+    // Remove from localStorage
+    localStorage.removeItem('demoMode');
+    localStorage.removeItem('demoRole');
+    
     setDemoMode(false);
     setUserDataState(null);
     setIsEmailVerified(false);
+    
+    // Redirect to login page
+    window.location.href = "/";
   };
 
   const forceRedirectToDashboard = () => {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signIn, db, refreshUserState } from "@/lib/firebase";
@@ -23,16 +22,21 @@ const Login = () => {
   const [verifyingEmail, setVerifyingEmail] = useState(false);
   const isMobile = useIsMobile();
 
-  const { startDemoMode, setUserData, forceRedirectToDashboard } = useAuth();
+  const { startDemoMode, setUserData, forceRedirectToDashboard, demoMode } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Check if remember me was previously set
+  useEffect(() => {
+    const storedDemoMode = localStorage.getItem('demoMode');
+    if (storedDemoMode === 'true' || demoMode) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [demoMode, navigate]);
+
   useEffect(() => {
     const remembered = localStorage.getItem("rememberMe") === "true";
     setRememberMe(remembered);
     
-    // Check for saved credentials if rememberMe is true
     if (remembered) {
       const savedEmail = localStorage.getItem("savedEmail");
       if (savedEmail) {
@@ -57,7 +61,6 @@ const Login = () => {
       setIsLoading(true);
       const userCredential = await signIn(email, password);
       
-      // Store remember me preference and email immediately
       if (rememberMe) {
         localStorage.setItem("rememberMe", "true");
         localStorage.setItem("savedEmail", email);
@@ -66,7 +69,6 @@ const Login = () => {
         localStorage.removeItem("savedEmail");
       }
       
-      // Fetch user data from Firestore
       const userDocRef = doc(db, "users", userCredential.user.uid);
       const userDoc = await getDoc(userDocRef);
       
@@ -85,24 +87,20 @@ const Login = () => {
           ...(userDoc.data().ceo && { ceo: userDoc.data().ceo }),
         };
         
-        // Set the user data in context
         setUserData(userData);
       }
       
-      // Check if email is verified - immediately check
       setVerifyingEmail(true);
       const isVerified = await refreshUserState();
       setVerifyingEmail(false);
       
       if (!isVerified) {
-        // Navigate to verification page if email is not verified
         navigate("/verify", { 
           state: { 
             email: userCredential.user.email,
           } 
         });
       } else {
-        // Email already verified, use force redirect to dashboard
         toast({
           title: "Login successful",
           description: "Welcome back to EduHub!",
@@ -123,7 +121,6 @@ const Login = () => {
 
   const startDemo = (role: "student" | "teacher" | "school") => {
     startDemoMode(role);
-    // No need for forceRedirectToDashboard here as it's now handled inside startDemoMode
   };
 
   return (
