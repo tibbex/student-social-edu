@@ -123,7 +123,7 @@ const Login = () => {
 
   const startDemo = (role: "student" | "teacher" | "school") => {
     startDemoMode(role);
-    forceRedirectToDashboard();
+    // No need for forceRedirectToDashboard here as it's now handled inside startDemoMode
   };
 
   return (
@@ -211,7 +211,7 @@ const Login = () => {
                   <Button 
                     variant="outline"
                     className="w-full text-xs"
-                    onClick={() => startDemoMode("student")}
+                    onClick={() => startDemo("student")}
                   >
                     Try as Student (10 min)
                   </Button>
@@ -220,7 +220,7 @@ const Login = () => {
                   <Button 
                     variant="outline"
                     className="w-full text-xs"
-                    onClick={() => startDemoMode("teacher")}
+                    onClick={() => startDemo("teacher")}
                   >
                     Try as Teacher (10 min)
                   </Button>
@@ -229,7 +229,7 @@ const Login = () => {
                   <Button 
                     variant="outline"
                     className="w-full text-xs"
-                    onClick={() => startDemoMode("school")}
+                    onClick={() => startDemo("school")}
                   >
                     Try as School (10 min)
                   </Button>

@@ -160,6 +160,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       title: "Demo mode started",
       description: "You have 10 minutes to explore EduHub.",
     });
+    
+    // Use window.location.href for reliable redirection in demo mode
+    window.location.href = "/dashboard";
   };
 
   const endDemoMode = () => {
@@ -171,7 +174,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsEmailVerified(false);
   };
 
-  // New function to force redirect to dashboard
   const forceRedirectToDashboard = () => {
     window.location.href = "/dashboard";
   };

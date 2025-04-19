@@ -25,6 +25,11 @@ const AppRoutes = () => {
         (demoMode && window.location.pathname === "/verify")) {
       window.location.href = "/dashboard";
     }
+    
+    // Add direct redirection for demo mode from root or login page
+    if (demoMode && (window.location.pathname === "/" || window.location.pathname === "/login")) {
+      window.location.href = "/dashboard";
+    }
   }, [isEmailVerified, currentUser, demoMode]);
   
   if (loading) {
@@ -38,7 +43,10 @@ const AppRoutes = () => {
       <Route path="/" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/verify" element={<VerifyCode />} />
-      <Route path="/dashboard/*" element={<Dashboard />} />
+      <Route path="/dashboard/*" element={
+        demoMode ? <Dashboard /> : 
+        (currentUser && isEmailVerified ? <Dashboard /> : <Navigate to="/" />)
+      } />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
