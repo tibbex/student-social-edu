@@ -23,7 +23,7 @@ const Login = () => {
   const [verifyingEmail, setVerifyingEmail] = useState(false);
   const isMobile = useIsMobile();
 
-  const { startDemoMode, setUserData } = useAuth();
+  const { startDemoMode, setUserData, forceRedirectToDashboard } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -57,7 +57,7 @@ const Login = () => {
       setIsLoading(true);
       const userCredential = await signIn(email, password);
       
-      // Store remember me preference and email
+      // Store remember me preference and email immediately
       if (rememberMe) {
         localStorage.setItem("rememberMe", "true");
         localStorage.setItem("savedEmail", email);
@@ -102,12 +102,12 @@ const Login = () => {
           } 
         });
       } else {
-        // Email already verified, navigate directly to dashboard with a success toast
+        // Email already verified, use force redirect to dashboard
         toast({
           title: "Login successful",
           description: "Welcome back to EduHub!",
         });
-        navigate("/dashboard");
+        forceRedirectToDashboard();
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -123,7 +123,7 @@ const Login = () => {
 
   const startDemo = (role: "student" | "teacher" | "school") => {
     startDemoMode(role);
-    navigate("/dashboard");
+    forceRedirectToDashboard();
   };
 
   return (

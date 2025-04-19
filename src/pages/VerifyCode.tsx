@@ -14,12 +14,12 @@ import { ArrowLeft, Mail, AlertCircle, Loader2 } from "lucide-react";
 const VerifyCode = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
-  const [countdown, setCountdown] = useState(30); // Reduced from 60 to 30
+  const [countdown, setCountdown] = useState(30);
   const [resendDisabled, setResendDisabled] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { setUserData, isEmailVerified } = useAuth();
+  const { setUserData, isEmailVerified, forceRedirectToDashboard } = useAuth();
   const [searchParams] = useSearchParams();
   
   // Extract email and userData from location state
@@ -29,17 +29,17 @@ const VerifyCode = () => {
   // Check if we have an oobCode from the verification email link
   const oobCode = searchParams.get('oobCode');
 
-  // Check automatic verification status
+  // Check automatic verification status - with immediate redirect
   useEffect(() => {
     if (isEmailVerified) {
-      // If email is already verified, redirect to dashboard immediately
       toast({
         title: "Email already verified",
         description: "Your account is verified. Redirecting to dashboard."
       });
-      navigate("/dashboard");
+      // Use immediate redirect for verified users
+      forceRedirectToDashboard();
     }
-  }, [isEmailVerified, navigate, toast]);
+  }, [isEmailVerified, forceRedirectToDashboard, toast]);
 
   useEffect(() => {
     // If oobCode is present in URL, verify it automatically
@@ -82,7 +82,7 @@ const VerifyCode = () => {
     };
   }, [email, toast, navigate, oobCode, codeSent]);
 
-  // Add an additional check to verify email status periodically
+  // Add an additional check to verify email status periodically - with faster checks
   useEffect(() => {
     const checkEmailVerification = async () => {
       if (auth.currentUser && !isEmailVerified) {
@@ -92,16 +92,16 @@ const VerifyCode = () => {
             title: "Email verified",
             description: "Your email has been successfully verified."
           });
-          // Redirect to dashboard after successful verification
-          setTimeout(() => navigate("/dashboard"), 1000);
+          // Use immediate redirect for verified users
+          forceRedirectToDashboard();
         }
       }
     };
     
-    // Check every 5 seconds if email is verified
-    const interval = setInterval(checkEmailVerification, 5000);
+    // Check every 3 seconds if email is verified
+    const interval = setInterval(checkEmailVerification, 3000);
     return () => clearInterval(interval);
-  }, [navigate, toast, isEmailVerified]);
+  }, [isEmailVerified, forceRedirectToDashboard, toast]);
 
   const handleSendVerificationEmail = async () => {
     if (!auth.currentUser) {
@@ -124,7 +124,7 @@ const VerifyCode = () => {
       });
       
       // Reset countdown for resend
-      setCountdown(30); // Reduced from 60 to 30
+      setCountdown(30);
       setResendDisabled(true);
       setCodeSent(true);
     } catch (error) {
@@ -158,8 +158,8 @@ const VerifyCode = () => {
         description: "Your email has been successfully verified. You can now post content on EduHub!",
       });
       
-      // Force reload the page to update the auth state
-      window.location.href = "/dashboard";
+      // Use immediate force redirect instead of normal navigation
+      forceRedirectToDashboard();
       
     } catch (error) {
       console.error("Error verifying email:", error);

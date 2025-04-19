@@ -29,6 +29,7 @@ interface AuthContextType {
   setUserData: (data: UserData) => void;
   startDemoMode: (role: UserRole) => void;
   endDemoMode: () => void;
+  forceRedirectToDashboard: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -103,7 +104,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     if (!demoMode && currentUser && !isEmailVerified) {
-      // Check verification status more frequently (every 10 seconds)
+      // Check verification status more frequently (every 5 seconds)
       const checkVerificationInterval = setInterval(async () => {
         const verified = await refreshUserState();
         if (verified) {
@@ -113,8 +114,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             title: "Email verified",
             description: "Your email has been verified successfully.",
           });
+          
+          // Auto-redirect to dashboard once verified
+          window.location.href = "/dashboard";
         }
-      }, 10000); // Check every 10 seconds instead of 30
+      }, 5000); // Check every 5 seconds
       
       return () => clearInterval(checkVerificationInterval);
     }
@@ -167,6 +171,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsEmailVerified(false);
   };
 
+  // New function to force redirect to dashboard
+  const forceRedirectToDashboard = () => {
+    window.location.href = "/dashboard";
+  };
+
   const value = {
     currentUser,
     userData,
@@ -175,7 +184,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isEmailVerified,
     setUserData,
     startDemoMode,
-    endDemoMode
+    endDemoMode,
+    forceRedirectToDashboard
   };
 
   return (

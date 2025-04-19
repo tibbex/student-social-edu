@@ -11,12 +11,21 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import VerifyCode from "./pages/VerifyCode";
 import NotFound from "./pages/NotFound";
+import { useEffect } from "react";
 
 const queryClient = new QueryClient();
 
 // Protected route component to handle authentication
 const AppRoutes = () => {
-  const { loading } = useAuth();
+  const { loading, isEmailVerified, currentUser, demoMode } = useAuth();
+  
+  useEffect(() => {
+    // When user is verified and on verify page, redirect to dashboard
+    if ((currentUser && isEmailVerified && window.location.pathname === "/verify") || 
+        (demoMode && window.location.pathname === "/verify")) {
+      window.location.href = "/dashboard";
+    }
+  }, [isEmailVerified, currentUser, demoMode]);
   
   if (loading) {
     return <div className="flex items-center justify-center h-screen">
